@@ -6,9 +6,9 @@ import joblib
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
-from backend.schemas import LoanApplication
-from ..utils.model import predict_churn
-from ..utils.database import save_prediction, supabase
+from backend.schemas import PredictRequestSchema
+from backend.model_service import churn_service
+from utils.database import ChurnPredictionDB, supabase
 
 load_dotenv()
 app = FastAPI(title="Customer Churn Predictor", version="1.0")
@@ -34,10 +34,21 @@ def health():
 
 # B3 + B4 + B5 Predict
 @app.post("/predict")
-async def predict(application: LoanApplication):
+async def predict(application: PredictRequestSchema):
+
     input_dict = application.dict()
-    result = predict_churn(input_dict)
-    save_prediction(input_dict, result)  # B6 graceful
+
+    result = churn_service.predict_churn(input_dict)
+
+    # lưu vào database
+    ChurnPredictionDB.save_prediction(
+        input_data=input_dict,
+        churn_score=result["churn_score"],
+        will_churn=result["will_churn"],
+        risk_level=result["risk_level"],
+        recommendation=result["recommendation"]
+    )
+
     return result
 
 # B7 History + pagination

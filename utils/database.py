@@ -3,11 +3,14 @@ from supabase import create_client, Client
 from pydantic import BaseModel
 from typing import Dict, Any, Optional
 from datetime import datetime
+from dotenv import load_dotenv   # thêm dòng này
+
+load_dotenv()
 import uuid
 
 # Load biến môi trường (Nên dùng python-dotenv trong thực tế)
-SUPABASE_URL = os.getenv("SUPABASE_URL", "your-supabase-url")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY", "your-supabase-anon-key")
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 # Khởi tạo client Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)

@@ -14,6 +14,8 @@ class PredictRequestSchema(BaseModel):
     HasCrCard: int = Field(..., ge=0, le=1)
     IsActiveMember: int = Field(..., ge=0, le=1)
     EstimatedSalary: float = Field(..., ge=0)
+    Gender: str = Field(..., description="Giới tính")
+    Geography: str = Field(..., description="Địa lý")
     login_count_last_30d: int = Field(..., ge=0)
     num_transactions_last_90d: int = Field(..., ge=0)
     avg_transaction_amount: float = Field(..., ge=0)
