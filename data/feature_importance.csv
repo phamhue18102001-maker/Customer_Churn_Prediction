@@ -1,0 +1,14 @@
+Feature,Importance
+num__Age,0.322551356944964
+num__NumOfProducts,0.15375642735619036
+num__Balance,0.13718942559350297
+num__AVG_BALANCE_3M,0.13649284963567113
+num__num_transactions_last_90d,0.07899605805923779
+num__login_count_last_30d,0.06554682392491618
+cat__Geography_Germany,0.025447812404103556
+num__complaint_count_last_12m,0.023225863340978946
+num__IsActiveMember,0.01616355501236427
+cat__Geography_France,0.011264385822366378
+cat__Gender_Male,0.010674686636749673
+cat__Gender_Female,0.009875024693451757
+cat__Geography_Spain,0.008815730575503016
