@@ -11,7 +11,7 @@ from ..utils.model import predict_churn
 from ..utils.database import save_prediction, supabase
 
 load_dotenv()
-app = FastAPI(title="Bank Churn Predictor", version="1.0")
+app = FastAPI(title="Customer Churn Predictor", version="1.0")
 
 # B8 CORS
 app.add_middleware(

@@ -7,4 +7,5 @@ xgboost
 supabase
 python-dotenv
 pandas
-randomforest
+psycopg2-binary
+sqlalchemy

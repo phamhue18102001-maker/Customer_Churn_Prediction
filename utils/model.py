@@ -1,4 +1,3 @@
-pip install sqlalchemy pydantic psycopg2-binary
 from sqlalchemy import Column, Float, Boolean, Text, TIMESTAMP, func
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import declarative_base # <-- Cập nhật chuẩn SQLAlchemy 2.0
