@@ -10,3 +10,4 @@ pandas
 psycopg2-binary
 sqlalchemy
 onnxruntime
+python-multipart

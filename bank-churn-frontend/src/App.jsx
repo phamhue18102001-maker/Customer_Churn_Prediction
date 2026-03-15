@@ -63,7 +63,8 @@ export default function App() {
     setResult(null);
     try {
       // Đổi URL này thành URL Render của bạn sau khi deploy Backend
-      const response = await axios.post('http://127.0.0.1:8000/predict', data);
+      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+      const response = await axios.post(`${API_URL}/predict`, data);
       setResult({
         ...response.data,
         inputBalance: data.Balance // Lưu lại số dư để vẽ chart
@@ -198,7 +199,7 @@ export default function App() {
                 </div>
                 <ChurnPredictionChart
                   currentBalance={result.inputBalance}
-                  baseChurnProb={result.churn_probability}
+                  baseChurnProb={result.churn_score}
                 />
               </div>
             )}

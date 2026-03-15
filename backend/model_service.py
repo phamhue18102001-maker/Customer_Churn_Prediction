@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import os
+import onnxruntime as ort
 
 class ChurnModelService:
     def __init__(self, model_dir="models"):
@@ -15,7 +16,7 @@ class ChurnModelService:
             threshold_path = os.path.join(model_dir, "optimal_threshold.pkl")
 
             # Load model và các tham số
-            self.model = joblib.load(model_path)
+            self.model = ort.InferenceSession(model_path)
             self.preprocessor = joblib.load(preprocessor_path)
             
             # Nếu không tìm thấy file threshold, dùng mặc định 0.5
