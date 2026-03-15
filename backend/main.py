@@ -16,7 +16,7 @@ app = FastAPI(title="Customer Churn Predictor", version="1.0")
 # B8 CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://your-vercel-frontend.vercel.app"],  # thay sau khi deploy
+    allow_origins=["*"],  # thay sau khi deploy
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

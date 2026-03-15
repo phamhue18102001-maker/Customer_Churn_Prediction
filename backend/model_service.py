@@ -10,7 +10,7 @@ class ChurnModelService:
         """
         try:
             # Đường dẫn tới các file model
-            model_path = os.path.join(model_dir, "best_model.pkl")
+            model_path = os.path.join(model_dir, "best_model.onnx")
             preprocessor_path = os.path.join(model_dir, "preprocessor.pkl")
             threshold_path = os.path.join(model_dir, "optimal_threshold.pkl")
 
