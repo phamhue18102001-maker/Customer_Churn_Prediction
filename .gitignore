@@ -4,10 +4,10 @@ __pycache__/
 
 # Environment
 .env
-
+backend/.env
+node_modules/
 # ML models (optional)
 models/*.pkl
-!models/optimal_threshold.pkl
-!models/preprocessor.pkl
+models/*.onnx
 # OS
 .DS_Store
