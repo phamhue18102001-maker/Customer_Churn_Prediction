@@ -6,7 +6,8 @@ __pycache__/
 .env
 
 # ML models (optional)
-*.pkl
-
+models/*.pkl
+!models/optimal_threshold.pkl
+!models/preprocessor.pkl
 # OS
 .DS_Store

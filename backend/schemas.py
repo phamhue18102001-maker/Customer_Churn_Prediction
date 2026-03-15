@@ -20,6 +20,9 @@ class PredictRequestSchema(BaseModel):
     num_transactions_last_90d: int = Field(..., ge=0)
     avg_transaction_amount: float = Field(..., ge=0)
     complaint_count_last_12m: int = Field(..., ge=0)
+    AVG_BALANCE_3M: float = Field(..., ge=0, description="Số dư trung bình 3 tháng")
+    MAX_TRANSACTION_6M: float = Field(..., ge=0, description="Giao dịch lớn nhất 6 tháng")
+    STDDEV_TRANSACTION_12M: float = Field(..., ge=0, description="Độ lệch chuẩn giao dịch 12 tháng")
 
 # 2. Schema cho Output (Trả về từ DB qua API /applications)
 class ApplicationResponseSchema(BaseModel):
