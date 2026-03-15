@@ -8,6 +8,5 @@ backend/.env
 node_modules/
 # ML models (optional)
 models/*.pkl
-models/*.onnx
 # OS
 .DS_Store
