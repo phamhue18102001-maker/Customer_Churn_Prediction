@@ -9,7 +9,7 @@ import os
 MODEL_DIR = "models"
 ZIP_FILE = "models.zip"
 
-MODEL_URL = "https://drive.google.com/file/d/1PGScIb0HG5d0I5HGgRTRR9T_zDuQ-woh/view?usp=drive_link"  # thay FILE_ID
+MODEL_URL = "https://drive.google.com/uc?id=1PGScIb0HG5d0I5HGgRTRR9T_zDuQ-woh"
 
 def ensure_models():
 
