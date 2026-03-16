@@ -1,22 +1,45 @@
 import pandas as pd
 import numpy as np
 import joblib
+import zipfile
+import gdown
 import os
-import onnxruntime as ort
+
+
+MODEL_DIR = "models"
+ZIP_FILE = "models.zip"
+
+MODEL_URL = "https://drive.google.com/file/d/1PGScIb0HG5d0I5HGgRTRR9T_zDuQ-woh/view?usp=drive_link"  # thay FILE_ID
+
+def ensure_models():
+
+    if not os.path.exists(MODEL_DIR):
+
+        print("⬇️ Downloading models...")
+
+        gdown.download(MODEL_URL, ZIP_FILE, quiet=False)
+
+        print("📦 Extracting models...")
+
+        with zipfile.ZipFile(ZIP_FILE, 'r') as zip_ref:
+            zip_ref.extractall(".")
+
+        print("✅ Models ready!")
 
 class ChurnModelService:
     def __init__(self, model_dir="models"):
+        ensure_models()
         """
         Khởi tạo service, load các file .pkl đã lưu từ quá trình train.
         """
         try:
             # Đường dẫn tới các file model
-            model_path = os.path.join(model_dir, "best_models.onnx")
+            model_path = os.path.join(model_dir, "best_model.pkl")
             preprocessor_path = os.path.join(model_dir, "preprocessor.pkl")
             threshold_path = os.path.join(model_dir, "optimal_threshold.pkl")
 
             # Load model và các tham số
-            self.model = ort.InferenceSession(model_path)
+            self.model = joblib.load(model_path)
             self.preprocessor = joblib.load(preprocessor_path)
             
             # Nếu không tìm thấy file threshold, dùng mặc định 0.5

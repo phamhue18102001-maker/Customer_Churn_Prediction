@@ -6,6 +6,7 @@ import joblib
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
+import uvicorn
 from backend.schemas import PredictRequestSchema
 from backend.model_service import churn_service
 from utils.database import ChurnPredictionDB, supabase
@@ -78,3 +79,5 @@ def model_info():
         "features": 15,
         "threshold": float(threshold)
     }
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
