@@ -55,18 +55,16 @@ async def predict(application: PredictRequestSchema):
 # B7 History + pagination
 @app.get("/applications")
 def get_history(page: int = 1, limit: int = 10):
-    start = (page - 1) * limit
-    data = supabase.table("applications").select("*").order("created_at", desc=True).range(start, start+limit).execute()
-    return {"data": data.data, "page": page, "limit": limit}
+    data = ChurnPredictionDB.get_history(page=page, limit=limit)
+    return {"data": data, "page": page, "limit": limit}
 
 # B10 Detail
 @app.get("/applications/{id}")
 def get_detail(id: str):
-    data = supabase.table("applications").select("*").eq("id", id).execute()
-    if not data.data:
+    data = ChurnPredictionDB.get_detail(id)
+    if not data:
         raise HTTPException(404, "Not found")
-    return data.data[0]
-
+    return data
 # B11 Model info
 @app.get("/model-info")
 def model_info():

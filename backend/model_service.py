@@ -1,123 +1,126 @@
 import pandas as pd
 import numpy as np
 import joblib
-import zipfile
-import gdown
 import os
+from pathlib import Path
 
+def ensure_models(model_dir: str = "models"):
+    """Tạo thư mục models và kiểm tra các file cần thiết."""
+    Path(model_dir).mkdir(parents=True, exist_ok=True)
+    
+    required_files = [
+        "randomforest_best_model.pkl",
+        "preprocessor.pkl",
+        "optimal_threshold.pkl"
+    ]
+    
+    missing = [f for f in required_files if not os.path.exists(os.path.join(model_dir, f))]
+    
+    if missing:
+        print(f"⚠️  Thiếu file: {missing}")
+        print("   Vui lòng copy 3 file .pkl từ thư mục train vào thư mục 'models/'")
+    else:
+        print(f"✅ Tất cả model files đã có trong '{model_dir}'")
 
-MODEL_DIR = "models"
-ZIP_FILE = "models.zip"
-
-MODEL_URL = "https://drive.google.com/uc?id=1PGScIb0HG5d0I5HGgRTRR9T_zDuQ-woh"
-
-def ensure_models():
-
-    if not os.path.exists(MODEL_DIR):
-
-        print("⬇️ Downloading models...")
-
-        gdown.download(MODEL_URL, ZIP_FILE, quiet=False)
-
-        print("📦 Extracting models...")
-
-        with zipfile.ZipFile(ZIP_FILE, 'r') as zip_ref:
-            zip_ref.extractall(".")
-
-        print("✅ Models ready!")
 
 class ChurnModelService:
-    def __init__(self, model_dir="models"):
-        ensure_models()
-        """
-        Khởi tạo service, load các file .pkl đã lưu từ quá trình train.
-        """
+    def __init__(self, model_dir: str = "models"):
+        ensure_models(model_dir)
+        self.model_dir = model_dir
+        
         try:
-            # Đường dẫn tới các file model
-            model_path = os.path.join(model_dir, "best_model.pkl")
+            model_path = os.path.join(model_dir, "randomforest_best_model.pkl")
             preprocessor_path = os.path.join(model_dir, "preprocessor.pkl")
             threshold_path = os.path.join(model_dir, "optimal_threshold.pkl")
 
-            # Load model và các tham số
             self.model = joblib.load(model_path)
             self.preprocessor = joblib.load(preprocessor_path)
+
+            self.threshold = joblib.load(threshold_path) if os.path.exists(threshold_path) else 0.5
             
-            # Nếu không tìm thấy file threshold, dùng mặc định 0.5
-            if os.path.exists(threshold_path):
-                self.threshold = joblib.load(threshold_path)
-            else:
-                self.threshold = 0.5
-                
-            print(f"✅ Đã load thành công model! Ngưỡng dự đoán: {self.threshold:.3f}")
+            print(f"✅ Model loaded successfully!")
+            print(f"   Threshold: {self.threshold:.4f}")
+            print(f"   Pipeline type: {type(self.model)}")
+            
         except FileNotFoundError as e:
-            print(f"❌ LỖI: Không tìm thấy file model. Vui lòng kiểm tra lại thư mục '{model_dir}'. Chi tiết: {e}")
+            print(f"❌ LỖI: Không tìm thấy model. {e}")
             self.model = None
+            self.threshold = 0.5
 
     def _feature_engineering(self, input_dict: dict) -> pd.DataFrame:
-        """
-        Tạo các biến phái sinh y hệt như lúc train model.
-        Thay vì dùng random noise, ta dùng giá trị trung bình để kết quả ổn định.
-        """
+        
         df = pd.DataFrame([input_dict])
 
-        # Trích xuất các biến cần thiết
-        balance = df['Balance'].iloc[0]
-        is_active = df['IsActiveMember'].iloc[0]
-        est_salary = df['EstimatedSalary'].iloc[0]
-        num_products = df['NumOfProducts'].iloc[0]
-        age = df['Age'].iloc[0]
+        # ====================== 1. CÁC BIẾN CƠ BẢN ======================
+        df['tenure_group'] = pd.cut(df['Tenure'], 
+                                    bins=[0, 3, 6, 12, 24, 60, np.inf],
+                                    labels=['New', 'Early', 'Growth', 'Mature', 'Loyal', 'Veteran'])
+        df['age_group'] = pd.cut(df['Age'], 
+                                 bins=[0, 30, 40, 50, 60, 100],
+                                 labels=['Young', 'Adult', 'Mid', 'Senior', 'Elder'])
 
-        # 1. AVG_BALANCE_3M: Dùng trung bình của uniform(-0.02, 0.03) là 0.005
-        df['AVG_BALANCE_3M'] = balance * (1 + is_active * 0.005)
+        # ====================== 2. BALANCE & RATIO ======================
+        df['balance_salary_ratio'] = df['Balance'] / (df['EstimatedSalary'] + 1)
+        df['credit_utilization'] = df['Balance'] / (df['CreditScore'] * 10 + 1)
+        df['avg_balance_per_product'] = df['Balance'] / (df['NumOfProducts'] + 1)
 
-        # 2. MAX_TRANSACTION_6M: Dùng trung bình của uniform(0.01, 0.1) là 0.055
-        df['MAX_TRANSACTION_6M'] = (est_salary * 0.055) * (1 + num_products * 0.1)
+        # ====================== 3. TRANSACTION & VELOCITY ======================
+        df['total_txn_amount_L3M'] = df['num_transactions_last_90d'] * df['avg_transaction_amount']
+        df['transaction_per_login'] = df['num_transactions_last_90d'] / (df['login_count_last_30d'] + 1)
+        df['complaint_rate'] = df['complaint_count_last_12m'] / (df['num_transactions_last_90d'] + 1)
 
-        # 3. STDDEV_TRANSACTION_12M: Dùng trung bình của uniform(0.1, 0.3) là 0.2
-        # Giả sử max_age trong tập train là khoảng 92
-        df['STDDEV_TRANSACTION_12M'] = df['MAX_TRANSACTION_6M'] * (0.2 + (1 - age/92.0) * 0.2)
+        # ====================== 4. RFM & SCORES ======================
+        df['freq_score'] = pd.qcut(df['num_transactions_last_90d'], q=5, labels=[1,2,3,4,5], duplicates='drop')
+        df['mon_score']  = pd.qcut(df['avg_transaction_amount'], q=5, labels=[1,2,3,4,5], duplicates='drop')
+        recency_proxy = 30 - df['login_count_last_30d'].clip(upper=30)
+        df['rec_score'] = pd.qcut(recency_proxy, q=5, labels=[5,4,3,2,1], duplicates='drop')
+        df['rfm_score'] = (df['rec_score'].astype(int)*100 + 
+                           df['freq_score'].astype(int)*10 + 
+                           df['mon_score'].astype(int))
+
+        # ====================== 5. TREND & VOLATILITY (dùng trực tiếp 3 cột đã có) ======================
+        df['balance_trend_L3M'] = (df['Balance'] - df['AVG_BALANCE_3M']) / (df['AVG_BALANCE_3M'] + 1)
+        df['value_volatility'] = df['STDDEV_TRANSACTION_12M']
+        df['cv_transaction'] = df['value_volatility'] / (df['avg_transaction_amount'] + 1)
+
+        # ====================== 6. INTERACTION FEATURES ======================
+        df['age_balance_interact'] = df['Age'] * df['Balance']
+        df['product_tenure_interact'] = df['NumOfProducts'] * df['Tenure']
+        df['product_active_interact'] = df['NumOfProducts'] * df['IsActiveMember']
+        df['complaint_active_interact'] = df['complaint_count_last_12m'] * (1 - df['IsActiveMember'])
+        df['login_balance_interact'] = df['login_count_last_30d'] * df['Balance']
 
         return df
 
     def predict_churn(self, input_data: dict) -> dict:
-        """
-        Nhận data từ API, dự đoán và trả về kết quả đã format.
-        """
         if self.model is None:
-            raise RuntimeError("Model chưa được load. Không thể dự đoán.")
+            raise RuntimeError("Model chưa được load!")
 
-        # 1. Biến đổi dữ liệu
-        df_features = self._feature_engineering(input_data)
+        df_input = self._feature_engineering(input_data)
 
-        # Vì trong code train của bạn, best_pipe đã bao gồm ('preprocessor', 'feature_selection', 'classifier')
-        # Nên ta chỉ cần truyền thẳng DataFrame vào best_pipe.predict_proba
-        
-        # 2. Dự đoán xác suất
-        churn_score = float(self.model.predict_proba(df_features)[:, 1][0])
-        
-        # 3. Đánh giá dựa trên optimal_threshold
-        will_churn = bool(churn_score >= self.threshold)
+        churn_probability = float(self.model.predict_proba(df_input)[:, 1][0])
 
-        # 4. Phân loại rủi ro và đưa ra hành động (Recommendation)
-        if churn_score < 0.3:
+        will_churn = bool(churn_probability >= self.threshold)
+
+        if churn_probability < 0.3:
             risk_level = "Thấp"
-            recommendation = "Khách hàng trung thành. Có thể cross-sell thêm thẻ tín dụng."
-        elif churn_score < self.threshold:
+            recommendation = "Khách hàng trung thành. Có thể cross-sell thêm sản phẩm."
+        elif churn_probability < self.threshold:
             risk_level = "Trung bình"
-            recommendation = "Theo dõi thêm. Cân nhắc gửi email nhắc nhở sử dụng app."
+            recommendation = "Theo dõi thêm. Gửi email nhắc nhở hoặc ưu đãi nhỏ."
         else:
             risk_level = "Cao"
-            recommendation = "Nguy cơ rời bỏ rất cao! Gửi SMS tặng voucher giảm phí giao dịch hoặc gọi điện CSKH ngay."
+            recommendation = "Nguy cơ rời bỏ rất cao! Gọi CSKH ngay hoặc tặng voucher miễn phí giao dịch."
 
-        # Trả về dictionary (sẽ được FastAPI convert thành JSON)
         return {
-            "churn_score": round(churn_score, 4),
+            "churn_probability": round(churn_probability, 4),
             "will_churn": will_churn,
             "risk_level": risk_level,
             "recommendation": recommendation,
+            "inputBalance": float(input_data.get("Balance", 0)),
             "optimal_threshold_used": float(self.threshold)
         }
 
-# Khởi tạo một instance duy nhất để import vào main.py (Singleton pattern)
-# Tạo sẵn thư mục 'models' và bỏ 3 file .pkl của bạn vào đó nhé.
+
+# ==================== SINGLETON ====================
 churn_service = ChurnModelService(model_dir="models")

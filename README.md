@@ -1,64 +1,174 @@
-# Dự Án: Dự Đoán Khách Hàng Rời Bỏ (Customer Churn Prediction)
-## Lĩnh vực: Ngân hàng bán lẻ (Retail Banking)
+#  Customer Churn Prediction - Retail Banking
 
-## 1. Tổng quan bài toán (Executive Summary)
-Trong bối cảnh ngân hàng số tại phát triển mạnh mẽ, việc giữ chân khách hàng (Customer Retention) trở thành yếu tố sống còn. Dự án này tập trung vào việc xây dựng mô hình học máy để dự báo khả năng một khách hàng sẽ ngừng sử dụng dịch vụ dựa trên các dữ liệu về hành vi, giao dịch và nhân khẩu học.
+##  1. Overview
+Trong lĩnh vực ngân hàng bán lẻ, việc giữ chân khách hàng (Customer Retention) là yếu tố quan trọng giúp ngân hàng duy trì doanh thu và lợi thế cạnh tranh.
 
-Customer Churn Prediction là bài toán dự đoán khả năng khách hàng sẽ rời bỏ ngân hàng trong một khoảng thời gian nhất định (ví dụ: 30–90 ngày tới).
+Tuy nhiên, khách hàng không nhất thiết phải đóng tài khoản mới được xem là rời bỏ. Trên thực tế, họ thường:
+- Ngừng giao dịch
+- Giảm số dư tài khoản
+- Không còn sử dụng dịch vụ
 
-Thay vì đợi khách hàng đóng tài khoản hoặc ngừng giao dịch, hệ thống sử dụng dữ liệu lịch sử để phát hiện sớm các dấu hiệu rời bỏ và giúp ngân hàng chủ động giữ chân khách hàng.
+ Dự án này xây dựng mô hình Machine Learning để dự đoán khả năng khách hàng rời bỏ (churn) trong 30–90 ngày tới.
 
-Ngân hàng phải đối mặt với một thực tế:
+---
 
-Chi phí thu hút khách hàng mới (Customer Acquisition Cost - CAC) thường cao gấp **5–7 lần** so với chi phí giữ chân khách hàng hiện tại.
+##  2. Business Objective
+- Phát hiện sớm khách hàng có nguy cơ rời bỏ  
+- Giảm chi phí thu hút khách hàng mới (CAC)  
+- Tăng tỷ lệ giữ chân khách hàng  
+- Hỗ trợ chiến lược chăm sóc khách hàng cá nhân hóa  
 
-Nếu không phát hiện sớm dấu hiệu rời bỏ, ngân hàng có thể:
+---
 
-- Mất nguồn vốn huy động
-- Mất doanh thu từ phí giao dịch
-- Mất khách hàng vào tay đối thủ cạnh tranh
+##  3. Problem Definition
+Đây là bài toán phân loại nhị phân (Binary Classification):
 
-Do đó cần một hệ thống dự đoán khách hàng có nguy cơ rời bỏ.
-* Xác định các đặc điểm chính dẫn đến việc khách hàng rời bỏ.
-* Xây dựng mô hình phân loại với độ phủ cao để không bỏ sót khách hàng nguy cơ.
-* Đề xuất các chiến dịch chăm sóc khách hàng cá nhân hóa.
+- `1` → Khách hàng rời bỏ (Churn)  
+- `0` → Khách hàng vẫn hoạt động (Stay)  
 
-## 2. Mô tả dữ liệu (Data Dictionary)
-Dữ liệu dự kiến bao gồm các nhóm biến chính sau: (dựa vào )
+---
 
-| Tên biến | Mô tả | Loại dữ liệu |
-| :--- | :--- | :--- |
-| `CustomerId` | Mã định danh duy nhất của khách hàng | Categorical |
-| `CreditScore` | Điểm tín dụng nội bộ | Numerical |
-| `Age` | Độ tuổi khách hàng | Numerical |
-| `Tenure` | Số năm gắn bó với ngân hàng | Numerical |
-| `Balance` | Số dư tài khoản hiện tại | Numerical |
-| `NumOfProducts` | Số lượng sản phẩm đang sử dụng (Thẻ, Vay, ...) | Numerical |
-| `IsActiveMember` | Trạng thái hoạt động (1: Có, 0: Không) | Binary |
-| `EstimatedSalary` | Ước tính thu nhập hàng năm | Numerical |
-| **`Exited`** | **Biến mục tiêu (1: Churn, 0: Stay)** | **Target** |
+##  4. Target Variable (Exited)
 
-## 3. Quy trình thực hiện (Pipeline)
+Biến `Exited` là biến quan trọng nhất trong mô hình.
 
-### Bước 1: Tiền xử lý dữ liệu (Data Preprocessing)
-* Làm sạch dữ liệu: Xử lý giá trị trống (NULL) và các giá trị ngoại lai (Outliers).
-* Mã hóa (Encoding): Chuyển đổi các biến định danh (Gender, Geography) sang dạng số bằng One-Hot Encoding.
-* Chuẩn hóa (Scaling): Sử dụng `StandardScaler` để đưa các biến như `Balance`, `Salary` về cùng một thang đo.
+Khách hàng được coi là **churn (Exited = 1)** nếu:
+- Không đăng nhập trong 30–90 ngày  
+- Số giao dịch giảm mạnh  
+- Số dư tài khoản gần về 0  
+- Không sử dụng sản phẩm/dịch vụ  
+- Có nhiều khiếu nại  
 
-### Bước 2: Phân tích khám phá (EDA)
-* Trực quan hóa mối quan hệ giữa độ tuổi và tỷ lệ rời bỏ.
-* Phân tích sự sụt giảm số dư tài khoản ảnh hưởng thế nào đến quyết định rời đi.
-* Kiểm tra sự mất cân bằng dữ liệu (Class Imbalance).
+Ngược lại:
+- `Exited = 0` → Khách hàng vẫn hoạt động bình thường  
 
-### Bước 3: Huấn luyện mô hình (Modeling) và Đánh giá & Tối ưu
-Thử nghiệm các thuật toán phổ biến:
-* **Logistic Regression** (Mô hình cơ sở).
-* **Random Forest Classifier** (Xử lý tốt các quan hệ phi tuyến).
-* **XGBoost / LightGBM** (Tối ưu hiệu năng và độ chính xác).
-* Sử dụng **Confusion Matrix**, **F1-Score** và **AUC-ROC** để đánh giá.
-* Tối ưu hóa bộ tham số (Hyperparameter Tuning) bằng `GridSearchCV`.
-### Bước 4: Triển khai veg ứng dụng web
-## 5. Kết luận & Ứng dụng
-Mô hình giúp ngân hàng chủ động phân loại khách hàng vào các nhóm rủi ro:
-* **Nhóm rủi ro cao:** Gửi ưu đãi phí thường niên hoặc tặng voucher dịch vụ.
-* **Nhóm rủi ro thấp:** Đề xuất các sản phẩm tài chính dài hạn (Tiết kiệm, Bảo hiểm).
+ Đây là biến được xây dựng dựa trên hành vi thực tế của khách hàng.
+
+---
+
+##  5. Dataset Description
+
+### Nhóm nhân khẩu học & tài chính
+
+- CreditScore: Điểm tín dụng
+
+- Age: Tuổi
+
+- EstimatedSalary: Thu nhập
+
+- Balance: Số dư
+
+### Nhóm quan hệ với ngân hàng
+
+- Tenure: Số năm gắn bó
+
+- NumOfProducts: Số sản phẩm sử dụng
+
+- HasCrCard: Có thẻ tín dụng
+
+- IsActiveMember: Có hoạt động hay không
+
+### Nhóm hành vi (RẤT QUAN TRỌNG để dự đoán churn)
+
+- login_count_last_30d: Số lần đăng nhập gần đây
+
+- num_transactions_last_90d: Số giao dịch
+
+- avg_transaction_amount: Giá trị giao dịch trung bình
+
+- complaint_count_last_12m: Số lần khiếu nại
+
+### Đây là nhóm biến quyết định chính đến churn 
+
+### Engineered Features (Behavioral Insights)
+
+Các biến dưới đây được tạo thêm để phản ánh hành vi khách hàng theo thời gian:
+
+- **AVG_BALANCE_3M**: Số dư trung bình trong 3 tháng gần nhất  
+  → Giúp phát hiện xu hướng rút tiền (dấu hiệu churn sớm)
+
+- **MAX_TRANSACTION_6M**: Giá trị giao dịch lớn nhất trong 6 tháng  
+  → Phản ánh mức độ sử dụng và niềm tin của khách hàng
+
+- **STDDEV_TRANSACTION_12M**: Độ biến động giao dịch trong 12 tháng  
+  → Đo lường sự thay đổi hành vi (behavior shift)
+
+Các biến này giúp mô hình hiểu được không chỉ trạng thái hiện tại mà còn xu hướng thay đổi của khách hàng theo thời gian.
+
+### Target
+- Exited: 1 = Churn, 0 = Stay  
+
+---
+
+## 6. Project Pipeline
+
+### 1. Data Preprocessing
+- Xử lý missing values  
+- Encoding (One-Hot Encoding)  
+- Scaling (StandardScaler)  
+
+### 2. Exploratory Data Analysis (EDA)
+- Phân tích Age vs Churn  
+- Phân tích Balance vs Churn  
+- Kiểm tra mất cân bằng dữ liệu  
+
+### 3. Modeling
+Sử dụng các mô hình:
+- Logistic Regression  
+- Random Forest  
+- XGBoost / LightGBM  
+
+### 4. Evaluation
+Các chỉ số đánh giá:
+- Confusion Matrix  
+- Precision / Recall  
+- F1-Score  
+- ROC-AUC  
+
+### 5. Hyperparameter Tuning
+- GridSearchCV  
+- Cross-validation  
+
+### 6. Deployment
+- Xây dựng API (Flask / FastAPI)  
+- Kết nối frontend  
+- Triển khai web app  
+
+---
+
+## 7. Business Impact
+
+### 🔴 High Risk (Nguy cơ cao)
+- Có khả năng rời bỏ cao  
+➡️ Gửi ưu đãi, chăm sóc trực tiếp  
+
+### 🟡 Medium Risk
+- Có dấu hiệu giảm tương tác  
+➡️ Gợi ý sản phẩm phù hợp  
+
+### 🟢 Low Risk
+- Khách hàng ổn định  
+➡️ Upsell dịch vụ  
+
+---
+
+## 8. Key Takeaways
+- Churn không chỉ là đóng tài khoản mà là giảm tương tác  
+- Dữ liệu hành vi quan trọng nhất trong dự đoán  
+- Mô hình giúp ra quyết định kinh doanh, không chỉ dự đoán  
+
+---
+
+## 9. Tech Stack
+- Python (Pandas, NumPy, Scikit-learn)  
+- XGBoost / LightGBM  
+- Matplotlib / Seaborn  
+- Flask / FastAPI  
+- Git & GitHub  
+
+---
+
+## 10. Future Improvements
+- Tích hợp dữ liệu real-time  
+- Kết nối hệ thống CRM  
+- A/B Testing chiến dịch giữ chân  
