@@ -1,8 +1,6 @@
--- =============================================
--- SCHEMA CHO APPLICATIONS (Supabase)
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
--- Tạo table (D1-D3)
+-- ==============================================================================
+-- 1. TẠO BẢNG
+-- ==============================================================================
 CREATE TABLE IF NOT EXISTS applications (
     id              UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     input_data      JSONB NOT NULL,
@@ -14,34 +12,21 @@ CREATE TABLE IF NOT EXISTS applications (
     updated_at      TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
 
--- Comment cho dễ quản lý sau này
-COMMENT ON TABLE applications IS 'Lưu lịch sử dự đoán churn (75+ features)';
-COMMENT ON COLUMN applications.input_data IS 'Toàn bộ input JSON (PredictRequestSchema)';
-COMMENT ON COLUMN applications.churn_score IS 'Xác suất churn từ model';
-COMMENT ON COLUMN applications.will_churn IS 'True = sẽ churn';
-COMMENT ON COLUMN applications.risk_level IS 'Low/Medium/High';
-COMMENT ON COLUMN applications.recommendation IS 'Gợi ý hành động';
-
--- Bật Row Level Security (D4)
-ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Allow public access (anon)" 
-    ON applications 
-    FOR ALL 
-    USING (true) 
-    WITH CHECK (true);
-
--- Index tối ưu query (D5 + bonus)
-CREATE INDEX IF NOT EXISTS idx_applications_created_at 
+-- ==============================================================================
+-- 2. TẠO INDEX (Tối ưu hóa truy vấn)
+-- ==============================================================================
+CREATE INDEX IF NOT EXISTS idx_applications_created_at
     ON applications (created_at DESC);
 
-CREATE INDEX IF NOT EXISTS idx_applications_will_churn 
+CREATE INDEX IF NOT EXISTS idx_applications_will_churn
     ON applications (will_churn);
 
-CREATE INDEX IF NOT EXISTS idx_applications_risk_level 
+CREATE INDEX IF NOT EXISTS idx_applications_risk_level
     ON applications (risk_level);
 
--- Trigger tự động update updated_at (D6 - Bonus)
+-- ==============================================================================
+-- 3. TẠO FUNCTION & TRIGGER (Tự động cập nhật updated_at)
+-- ==============================================================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -54,3 +39,25 @@ CREATE TRIGGER trigger_update_applications_updated_at
     BEFORE UPDATE ON applications
     FOR EACH ROW
     EXECUTE FUNCTION update_updated_at_column();
+
+-- ==============================================================================
+-- 4. BẢO MẬT: ROW LEVEL SECURITY (RLS) & POLICIES
+-- ==============================================================================
+-- Bật RLS cho bảng
+ALTER TABLE applications ENABLE ROW LEVEL SECURITY;
+
+-- Tạo một Policy duy nhất bao trùm cả quyền xem, thêm, sửa, xóa cho tất cả (public)
+-- (Policy này đã thay thế cho cả 2 policy cũ của bạn để tránh trùng lặp)
+CREATE POLICY "Enable full access for all (public)" 
+ON applications 
+FOR ALL 
+TO public 
+USING (true) 
+WITH CHECK (true);
+
+-- ==============================================================================
+-- 5. PHÂN QUYỀN (GRANTS)
+-- ==============================================================================
+-- Đảm bảo các role anon (chưa đăng nhập) và authenticated (đã đăng nhập) có quyền trên schema
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO anon;

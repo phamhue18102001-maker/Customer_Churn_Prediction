@@ -1,12 +1,18 @@
+# Web Framework & Server
 fastapi
 uvicorn[standard]
+
+# Data Validation & Settings
 pydantic
+pydantic-settings
+python-dotenv
+
+# Database (Supabase API)
+supabase
+
+# Data Science & Machine Learning
+pandas
+numpy
 joblib
 scikit-learn
 xgboost
-supabase
-python-dotenv
-pandas
-psycopg2-binary
-sqlalchemy
-gdown

@@ -70,13 +70,23 @@ class ChurnModelService:
         df['complaint_rate'] = df['complaint_count_last_12m'] / (df['num_transactions_last_90d'] + 1)
 
         # ====================== 4. RFM & SCORES ======================
-        df['freq_score'] = pd.qcut(df['num_transactions_last_90d'], q=5, labels=[1,2,3,4,5], duplicates='drop')
-        df['mon_score']  = pd.qcut(df['avg_transaction_amount'], q=5, labels=[1,2,3,4,5], duplicates='drop')
+        df['freq_score'] = pd.cut(df['num_transactions_last_90d'],
+                              bins=[-1, 5, 15, 30, 50, np.inf],
+                              labels=[1, 2, 3, 4, 5]).astype(int)
+
+        df['mon_score'] = pd.cut(df['avg_transaction_amount'],
+                             bins=[-1, 100, 500, 1000, 5000, np.inf],
+                             labels=[1, 2, 3, 4, 5]).astype(int)
+
         recency_proxy = 30 - df['login_count_last_30d'].clip(upper=30)
-        df['rec_score'] = pd.qcut(recency_proxy, q=5, labels=[5,4,3,2,1], duplicates='drop')
-        df['rfm_score'] = (df['rec_score'].astype(int)*100 + 
-                           df['freq_score'].astype(int)*10 + 
-                           df['mon_score'].astype(int))
+        df['rec_score'] = pd.cut(recency_proxy,
+                             bins=[-1, 5, 10, 15, 20, np.inf],
+                             labels=[5, 4, 3, 2, 1]).astype(int)
+
+        df['rfm_score'] = (df['rec_score'] * 100 +
+                       df['freq_score'] * 10 +
+                       df['mon_score'])
+
 
         # ====================== 5. TREND & VOLATILITY (dùng trực tiếp 3 cột đã có) ======================
         df['balance_trend_L3M'] = (df['Balance'] - df['AVG_BALANCE_3M']) / (df['AVG_BALANCE_3M'] + 1)

@@ -76,10 +76,10 @@ class PredictRequestSchema(BaseModel):
     velocity_L12M: float = Field(..., ge=0)
 
     # RFM scores
-    freq_score: str = Field(..., description="Điểm tần suất (category)")
-    mon_score: str = Field(..., description="Điểm tiền (category)")
-    rec_score: str = Field(..., description="Điểm gần đây (category)")
-    rfm_score: int = Field(..., ge=0)
+    freq_score: int = Field(..., ge=1, le=5, description="Điểm tần suất (1-5)")
+    mon_score: int = Field(..., ge=1, le=5, description="Điểm tiền (1-5)")
+    rec_score: int = Field(..., ge=1, le=5, description="Điểm gần đây (1-5)")
+    rfm_score: int = Field(..., ge=0, description="Tổng điểm hoặc mã RFM")
 
     # Growth & Ratio metrics
     sum_growth_L3M_vs_L6M: float = Field(...)           # có thể âm
