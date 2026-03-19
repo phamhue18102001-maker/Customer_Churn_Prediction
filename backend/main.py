@@ -40,6 +40,13 @@ def root():
         }
     }
 
+@app.head("/")
+def head_root():
+    return {
+        "app": "Churn Prediction API",
+        "status": "running"
+    }
+
 # B2 Health check (đã tối ưu)
 @app.get("/health")
 def health():
