@@ -27,6 +27,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+def root():
+    return {
+        "app": "Churn Prediction API",
+        "version": "1.0",
+        "endpoints": {
+            "health": "/health",
+            "predict": "/predict",
+            "history": "/applications",
+            "model_info": "/model-info"
+        }
+    }
+
 # B2 Health check (đã tối ưu)
 @app.get("/health")
 def health():

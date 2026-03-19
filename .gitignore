@@ -6,7 +6,6 @@ __pycache__/
 .env
 backend/.env
 node_modules/
-# ML models (optional)
-*.pkl
+
 # OS
 .DS_Store
