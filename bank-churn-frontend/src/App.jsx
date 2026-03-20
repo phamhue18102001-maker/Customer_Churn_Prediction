@@ -1,624 +1,320 @@
 import React, { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import axios from 'axios';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
-  BarChart, Bar, PieChart, Pie, Cell
+  BarChart, Bar, PieChart, Pie, Cell, AreaChart, Area, ComposedChart
 } from 'recharts';
 
-// --- COMPONENT BIỂU ĐỒ DỰ BÁO 6 THÁNG (GIỮ NGUYÊN) ---
-const ChurnPredictionChart = ({ currentBalance, baseChurnProb }) => {
-  const generateProjectionData = () => {
-    let data = [];
-    let tempBalance = Number(currentBalance) || 0;
-    let tempChurn = Number(baseChurnProb) || 0;
-    for (let i = 1; i <= 6; i++) {
-      data.push({
-        month: `Tháng ${i}`,
-        balance: Math.round(tempBalance),
-        churnRisk: Math.min(Math.round(tempChurn), 100)
-      });
-      tempBalance = tempBalance * 0.85;
-      tempChurn = tempChurn + 8.5;
-    }
-    return data;
-  };
-  return (
-    <div className="w-full h-80 bg-white p-4 rounded-xl shadow-sm border border-gray-100 mt-6">
-      <h3 className="text-md font-bold text-gray-700 mb-4 text-center">Dự báo xu hướng 6 tháng tới</h3>
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={generateProjectionData()} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-          <CartesianGrid strokeDasharray="3 3" opacity={0.5} />
-          <XAxis dataKey="month" fontSize={12} />
-          <YAxis yAxisId="left" fontSize={12} tickFormatter={(value) => `$${value}`} />
-          <YAxis yAxisId="right" orientation="right" fontSize={12} tickFormatter={(value) => `${value}%`} />
-          <Tooltip />
-          <Legend wrapperStyle={{ fontSize: '12px' }} />
-          <Line yAxisId="left" type="monotone" dataKey="balance" stroke="#3b82f6" name="Số dư (USD)" strokeWidth={3} />
-          <Line yAxisId="right" type="monotone" dataKey="churnRisk" stroke="#ef4444" name="Nguy cơ rời bỏ (%)" strokeWidth={3} />
-        </LineChart>
-      </ResponsiveContainer>
-    </div>
-  );
-};
+// ==========================================
+// DỮ LIỆU TỔNG QUAN (GIỮ NGUYÊN ĐỂ VẼ BIỂU ĐỒ)
+// ==========================================
+const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-// --- MOCK DATA CHO DEMO (sau này thay bằng API /dashboard và /customers/:id) ---
-const mockCustomers = [
-  {
-    id: 1,
-    name: "Nguyễn Văn A",
-    churn_probability: 0.78,
-    risk_level: "Cao",
-    recommendation: "Gửi ưu đãi cá nhân hóa (tăng lãi suất tiết kiệm 0.5%) và liên hệ ngay qua hotline để giữ chân.",
-    inputBalance: 105000,
-    churn_score: 78,
-    age: 42,
-    geography: "France",
-    journey: [
-      { step: "Đăng ký tài khoản", status: "Hoàn thành", date: "01/2024" },
-      { step: "Sử dụng sản phẩm", status: "Giảm mạnh", date: "03/2024" },
-      { step: "Khiếu nại lần 1", status: "1 lần", date: "06/2024" },
-      { step: "Hiện tại", status: "Nguy cơ cao", date: "Hiện tại" }
-    ],
-    drivers: [
-      { feature: "Số lần login thấp", impact: 35 },
-      { feature: "Số dư giảm 15%/tháng", impact: 25 },
-      { feature: "Khiếu nại gần đây", impact: 20 },
-      { feature: "Tuổi & Tenure", impact: 12 }
-    ],
-    comparison: { peerChurn: 0.22, avgChurn: 0.15, thisBalance: 105000, avgBalance: 82000 },
-    segment: "High-Value Low-Engagement"
-  },
-  {
-    id: 2,
-    name: "Trần Thị B",
-    churn_probability: 0.32,
-    risk_level: "Trung bình",
-    recommendation: "Tăng tương tác qua email marketing và kiểm tra hoạt động giao dịch.",
-    inputBalance: 85000,
-    churn_score: 32,
-    age: 35,
-    geography: "Germany",
-    journey: [
-      { step: "Đăng ký", status: "Hoàn thành", date: "02/2024" },
-      { step: "Sử dụng", status: "Bình thường", date: "04/2024" },
-      { step: "Khiếu nại", status: "0 lần", date: "Hiện tại" },
-      { step: "Hiện tại", status: "An toàn", date: "Hiện tại" }
-    ],
-    drivers: [
-      { feature: "Số dư ổn định", impact: -15 },
-      { feature: "Login đều đặn", impact: -20 },
-      { feature: "Không khiếu nại", impact: -25 },
-      { feature: "NumOfProducts", impact: -10 }
-    ],
-    comparison: { peerChurn: 0.22, avgChurn: 0.15, thisBalance: 85000, avgBalance: 82000 },
-    segment: "Loyal Mid-Value"
-  },
-  {
-    id: 3,
-    name: "Lê Hoàng C",
-    churn_probability: 0.65,
-    risk_level: "Cao",
-    recommendation: "Ưu đãi chuyển đổi sản phẩm và giảm phí giao dịch 3 tháng.",
-    inputBalance: 45000,
-    churn_score: 65,
-    age: 51,
-    geography: "Spain",
-    journey: [
-      { step: "Đăng ký", status: "Hoàn thành", date: "12/2023" },
-      { step: "Sử dụng", status: "Rất thấp", date: "02/2024" },
-      { step: "Khiếu nại", status: "2 lần", date: "05/2024" },
-      { step: "Hiện tại", status: "Nguy cơ cao", date: "Hiện tại" }
-    ],
-    drivers: [
-      { feature: "Số dư giảm mạnh", impact: 40 },
-      { feature: "Login thấp", impact: 30 },
-      { feature: "Tuổi cao", impact: 18 }
-    ],
-    comparison: { peerChurn: 0.22, avgChurn: 0.15, thisBalance: 45000, avgBalance: 82000 },
-    segment: "Senior At-Risk"
-  },
-  {
-    id: 4,
-    name: "Phạm Minh D",
-    churn_probability: 0.12,
-    risk_level: "Thấp",
-    recommendation: "Giữ nguyên chiến lược, chỉ cần theo dõi định kỳ.",
-    inputBalance: 220000,
-    churn_score: 12,
-    age: 28,
-    geography: "France",
-    journey: [
-      { step: "Đăng ký", status: "Hoàn thành", date: "03/2024" },
-      { step: "Sử dụng", status: "Cao", date: "Hiện tại" },
-      { step: "Khiếu nại", status: "0 lần", date: "Hiện tại" },
-      { step: "Hiện tại", status: "An toàn", date: "Hiện tại" }
-    ],
-    drivers: [
-      { feature: "Hoạt động cao", impact: -30 },
-      { feature: "Số dư tăng", impact: -25 }
-    ],
-    comparison: { peerChurn: 0.22, avgChurn: 0.15, thisBalance: 220000, avgBalance: 82000 },
-    segment: "Young High-Value"
-  }
+const trendData = [
+  { month: 'T1', churn: 120, retained: 800, balance: 4500, complaints: 15 },
+  { month: 'T2', churn: 132, retained: 810, balance: 4300, complaints: 18 },
+  { month: 'T3', churn: 101, retained: 850, balance: 4600, complaints: 12 },
+  { month: 'T4', churn: 145, retained: 840, balance: 4100, complaints: 25 },
+  { month: 'T5', churn: 90,  retained: 900, balance: 4800, complaints: 10 },
+  { month: 'T6', churn: 85,  retained: 950, balance: 5000, complaints: 8 },
 ];
 
-// --- COMPONENT TỔNG QUAN NGÂN HÀNG (Phần 1) ---
-const BankOverview = ({ onSelectCustomer }) => {
-  const kpis = {
-    totalCustomers: 12450,
-    churnRate: 18.5,
-    lostRevenue: 1250000,
-    highRiskCount: 1230
-  };
+const productUsageData = [
+  { name: '1 Sản phẩm', value: 4500 },
+  { name: '2 Sản phẩm', value: 3200 },
+  { name: '3 Sản phẩm', value: 1500 },
+  { name: '4+ Sản phẩm', value: 800 },
+];
 
-  const timeTrendData = [
-    { month: "T1", churnRate: 15.2, lostRevenue: 180000 },
-    { month: "T2", churnRate: 16.8, lostRevenue: 210000 },
-    { month: "T3", churnRate: 17.5, lostRevenue: 230000 },
-    { month: "T4", churnRate: 18.1, lostRevenue: 245000 },
-    { month: "T5", churnRate: 19.3, lostRevenue: 265000 },
-    { month: "T6", churnRate: 20.7, lostRevenue: 290000 }
-  ];
+const forecastData = [
+  { period: '6 Tháng', expectedChurn: 450, expectedRetention: 4500 },
+  { period: '9 Tháng', expectedChurn: 680, expectedRetention: 4200 },
+  { period: '12 Tháng', expectedChurn: 890, expectedRetention: 3800 },
+];
 
-  const ageData = [
-    { group: "18-30", count: 3200, churn: 12 },
-    { group: "31-45", count: 4800, churn: 19 },
-    { group: "46-60", count: 3100, churn: 24 },
-    { group: "60+", count: 1350, churn: 28 }
-  ];
+// Dữ liệu dùng để mô phỏng khi nhập ID tìm kiếm ở Tab Khách Hàng
+const mockSearchResult = {
+  id: "KH001", name: "Nguyễn Văn A", churn_probability: 0.78, risk_level: "Cao",
+  inputBalance: 105000, age: 42, geography: "France", gender: "Nam",
+  recommendation: "Gửi ưu đãi cá nhân hóa (tăng lãi suất 0.5%) và liên hệ ngay hotline.",
+  services: 2,
+  history: [
+    { month: 'Tháng -3', deposit: 5000, withdraw: 12000, balance: 110000 },
+    { month: 'Tháng -2', deposit: 2000, withdraw: 15000, balance: 97000 },
+    { month: 'Tháng -1', deposit: 0,    withdraw: 10000, balance: 105000 },
+  ]
+};
 
-  const geoData = [
-    { name: "France", value: 42, fill: "#3b82f6" },
-    { name: "Germany", value: 31, fill: "#eab308" },
-    { name: "Spain", value: 27, fill: "#ef4444" }
-  ];
-
-  const highRiskAlerts = mockCustomers.filter(c => c.churn_probability > 0.5);
-
+// ==========================================
+// COMPONENT 1: TỔNG QUAN NGÂN HÀNG (SẠCH SẼ, KHÔNG CÓ KH DEMO)
+// ==========================================
+const BankOverview = () => {
   return (
-    <div className="space-y-8">
-      {/* KPIs */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border">
-          <p className="text-sm text-gray-500">Tổng khách hàng</p>
-          <p className="text-4xl font-black text-blue-900 mt-2">{kpis.totalCustomers.toLocaleString()}</p>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border">
-          <p className="text-sm text-gray-500">Tỷ lệ churn dự báo</p>
-          <p className="text-4xl font-black text-red-600 mt-2">{kpis.churnRate}%</p>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border">
-          <p className="text-sm text-gray-500">Doanh thu mất tiềm năng (6 tháng)</p>
-          <p className="text-4xl font-black text-red-600 mt-2">${(kpis.lostRevenue / 1000000).toFixed(1)}M</p>
-        </div>
-        <div className="bg-white p-6 rounded-2xl shadow-sm border">
-          <p className="text-sm text-gray-500">KH nguy cơ cao</p>
-          <p className="text-4xl font-black text-red-600 mt-2">{kpis.highRiskCount}</p>
-        </div>
+    <div className="space-y-6">
+      {/* KHỐI KPI CHÍNH */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {[
+          { label: "Tổng Khách Hàng", value: "12,450", color: "text-blue-400" },
+          { label: "KH Mới (Tháng này)", value: "+840", color: "text-emerald-400" },
+          { label: "Tỷ lệ Rời bỏ (Churn)", value: "18.5%", color: "text-rose-400" },
+          { label: "Số Khiếu nại", value: "142", color: "text-amber-400" },
+          { label: "KH Nguy cơ cao", value: "1,230", color: "text-rose-500" },
+        ].map((kpi, idx) => (
+          <div key={idx} className="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-lg shadow-black/20 flex flex-col justify-center items-center text-center">
+            <p className="text-xs text-slate-400 uppercase tracking-wider font-semibold">{kpi.label}</p>
+            <p className={`text-3xl font-black mt-2 ${kpi.color}`}>{kpi.value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Biểu đồ tổng quan */}
       <div className="grid md:grid-cols-3 gap-6">
-        {/* Biểu đồ churn theo thời gian */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border col-span-2">
-          <h3 className="text-lg font-bold mb-4">Xu hướng churn & doanh thu mất theo tháng</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={timeTrendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="month" />
-              <YAxis yAxisId="left" tickFormatter={v => `${v}%`} />
-              <YAxis yAxisId="right" orientation="right" tickFormatter={v => `$${(v/1000)}k`} />
-              <Tooltip />
+        {/* Biểu đồ 1 */}
+        <div className="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-lg shadow-black/20 col-span-2">
+          <h3 className="text-slate-200 font-bold mb-4">Biến động KH: Rời bỏ & Ở lại (Theo tháng)</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <ComposedChart data={trendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="month" stroke="#94a3b8" />
+              <YAxis stroke="#94a3b8" />
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', color: '#fff' }} />
               <Legend />
-              <Line yAxisId="left" type="monotone" dataKey="churnRate" stroke="#ef4444" name="Churn Rate (%)" strokeWidth={3} />
-              <Line yAxisId="right" type="monotone" dataKey="lostRevenue" stroke="#3b82f6" name="Doanh thu mất ($)" strokeWidth={3} />
-            </LineChart>
+              <Bar dataKey="retained" fill="#10b981" name="KH Ở lại" radius={[4, 4, 0, 0]} />
+              <Line type="monotone" dataKey="churn" stroke="#f43f5e" name="KH Rời bỏ" strokeWidth={3} />
+            </ComposedChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Biểu đồ churn theo độ tuổi */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border">
-          <h3 className="text-lg font-bold mb-4">Churn theo nhóm tuổi</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={ageData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="group" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="churn" fill="#ef4444" name="Churn (%)" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-
-        {/* Biểu đồ theo quốc gia */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border col-span-3 md:col-span-1">
-          <h3 className="text-lg font-bold mb-4">Phân bố churn theo quốc gia</h3>
-          <ResponsiveContainer width="100%" height={280}>
+        {/* Biểu đồ 2 */}
+        <div className="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-lg shadow-black/20">
+          <h3 className="text-slate-200 font-bold mb-4">Tỷ lệ KH theo số Sản phẩm</h3>
+          <ResponsiveContainer width="100%" height={250}>
             <PieChart>
-              <Pie data={geoData} cx="50%" cy="50%" innerRadius={60} outerRadius={100} dataKey="value">
-                {geoData.map((entry, i) => <Cell key={`cell-${i}`} fill={entry.fill} />)}
+              <Pie data={productUsageData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                {productUsageData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
               </Pie>
-              <Tooltip />
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569' }} />
               <Legend />
             </PieChart>
           </ResponsiveContainer>
         </div>
-      </div>
 
-      {/* Alert Center */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border">
-        <div className="flex justify-between mb-4">
-          <h3 className="text-lg font-bold">Alert Center - KH nguy cơ cao</h3>
-          <span className="text-sm text-red-600 font-medium">{highRiskAlerts.length} alert</span>
+        {/* Biểu đồ 3 */}
+        <div className="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-lg shadow-black/20 col-span-2">
+          <h3 className="text-slate-200 font-bold mb-4">Tổng dòng tiền KH & Số khiếu nại</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <AreaChart data={trendData}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis dataKey="month" stroke="#94a3b8" />
+              <YAxis yAxisId="left" stroke="#94a3b8" />
+              <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" />
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569' }} />
+              <Legend />
+              <Area yAxisId="left" type="monotone" dataKey="balance" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.2} name="Tổng dòng tiền ($)" />
+              <Line yAxisId="right" type="monotone" dataKey="complaints" stroke="#f59e0b" name="Số khiếu nại" strokeWidth={3} />
+            </AreaChart>
+          </ResponsiveContainer>
         </div>
-        <div className="grid md:grid-cols-2 gap-4">
-          {highRiskAlerts.map(customer => (
-            <div key={customer.id} className="p-5 border border-red-200 rounded-xl hover:border-red-400 transition flex flex-col">
-              <div className="flex justify-between">
-                <div>
-                  <p className="font-semibold text-lg">{customer.name}</p>
-                  <p className="text-sm text-gray-500">{customer.geography} • {customer.age} tuổi</p>
-                </div>
-                <div className={`px-4 py-1 rounded-full text-white text-sm font-bold ${customer.churn_probability > 0.7 ? 'bg-red-600' : 'bg-orange-500'}`}>
-                  {(customer.churn_probability * 100).toFixed(0)}%
-                </div>
-              </div>
-              <p className="mt-3 text-sm text-gray-600 line-clamp-2">{customer.recommendation}</p>
-              <button
-                onClick={() => onSelectCustomer(customer.id)}
-                className="mt-4 text-sm bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg self-start transition"
-              >
-                Xem chi tiết khách hàng →
-              </button>
-            </div>
-          ))}
+
+        {/* Biểu đồ 4 */}
+        <div className="bg-slate-800 border border-slate-700 p-5 rounded-2xl shadow-lg shadow-black/20">
+          <h3 className="text-slate-200 font-bold mb-4">Dự báo Rời bỏ (6-9-12 Tháng)</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={forecastData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+              <XAxis type="number" stroke="#94a3b8" />
+              <YAxis dataKey="period" type="category" stroke="#94a3b8" width={70} />
+              <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569' }} />
+              <Legend />
+              <Bar dataKey="expectedChurn" fill="#ef4444" name="Dự kiến Rời bỏ" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
     </div>
   );
 };
 
-// --- COMPONENT CHI TIẾT KHÁCH HÀNG (Phần 2) ---
-const CustomerDetail = ({ customer, onBack }) => {
-  const [simBalance, setSimBalance] = useState(customer.inputBalance);
-  const [simLogin, setSimLogin] = useState(4);
-  const [simChurn, setSimChurn] = useState(customer.churn_probability);
+// ==========================================
+// COMPONENT 2: KHÔNG GIAN TRA CỨU KHÁCH HÀNG
+// ==========================================
+const CustomerSearchTab = () => {
+  const [searchInput, setSearchInput] = useState('');
+  const [customerData, setCustomerData] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
 
-  const runMiniSimulation = () => {
-    let newChurn = customer.churn_probability;
-    const balanceDrop = (customer.inputBalance - simBalance) / customer.inputBalance;
-    if (balanceDrop > 0.15) newChurn += 0.12;
-    if (simLogin < 5) newChurn += 0.08;
-    setSimChurn(Math.min(Math.max(newChurn, 0), 1));
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (!searchInput.trim()) return;
+    
+    setIsSearching(true);
+    // Giả lập gọi API tra cứu (sau này bạn thay bằng axios.get(`/api/customers/${searchInput}`))
+    setTimeout(() => {
+      setCustomerData(mockSearchResult);
+      setIsSearching(false);
+    }, 600);
   };
 
   return (
-    <div className="space-y-8">
-      <button
-        onClick={onBack}
-        className="flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
-      >
-        ← Quay về Tổng quan Ngân hàng
-      </button>
-
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-3xl font-bold">{customer.name}</h2>
-          <p className="text-gray-500">{customer.geography} • {customer.age} tuổi • Số dư: ${customer.inputBalance}</p>
-        </div>
-        <div className={`px-6 py-2 rounded-2xl text-white text-xl font-black ${customer.risk_level === 'Cao' ? 'bg-red-600' : customer.risk_level === 'Trung bình' ? 'bg-yellow-500' : 'bg-green-600'}`}>
-          {customer.risk_level}
-        </div>
+    <div className="space-y-6">
+      {/* THANH TÌM KIẾM TO, RÕ RÀNG */}
+      <div className="bg-slate-800 border border-slate-700 p-8 rounded-2xl shadow-lg shadow-black/20 text-center">
+        <h2 className="text-2xl font-bold text-white mb-2">Hồ sơ Khách hàng 360°</h2>
+        <p className="text-slate-400 mb-6">Nhập mã Khách hàng (CIF) hoặc số điện thoại để phân tích rủi ro</p>
+        
+        <form onSubmit={handleSearch} className="max-w-2xl mx-auto relative flex items-center">
+          <input 
+            type="text" 
+            placeholder="Ví dụ: KH001..." 
+            className="w-full bg-slate-900 border border-slate-600 rounded-l-xl py-4 pl-6 pr-4 text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 text-lg"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+          />
+          <button 
+            type="submit" 
+            className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-r-xl transition-colors border border-blue-600 flex items-center gap-2 text-lg"
+          >
+            {isSearching ? 'Đang tải...' : 'Tra cứu'}
+          </button>
+        </form>
       </div>
 
-      {/* Kết quả chẩn đoán chính (tái sử dụng style cũ) */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="p-6 bg-white rounded-2xl shadow-sm border">
-          <p className="text-sm text-gray-500">Xác suất rời bỏ</p>
-          <p className="text-5xl font-black text-red-600">{(customer.churn_probability * 100).toFixed(1)}%</p>
-        </div>
-        <div className="p-6 bg-white rounded-2xl shadow-sm border">
-          <p className="text-sm text-gray-500">Khuyến nghị hệ thống</p>
-          <p className="text-sm leading-relaxed mt-3 text-gray-700">{customer.recommendation}</p>
-        </div>
-      </div>
-
-      {/* Timeline dự báo (chart cũ) */}
-      <ChurnPredictionChart currentBalance={customer.inputBalance} baseChurnProb={customer.churn_score} />
-
-      {/* Customer Journey Map */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border">
-        <h3 className="text-lg font-bold mb-6">Customer Journey Map</h3>
-        <div className="space-y-8 relative pl-8 before:absolute before:left-4 before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200">
-          {customer.journey.map((step, idx) => (
-            <div key={idx} className="flex gap-4 relative">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold z-10">0{idx + 1}</div>
-              <div>
-                <p className="font-semibold">{step.step}</p>
-                <p className="text-sm text-gray-500">{step.date}</p>
-                <p className="text-sm mt-1">{step.status}</p>
+      {/* HIỂN THỊ CHI TIẾT KHÁCH HÀNG NẾU TÌM THẤY */}
+      {customerData && !isSearching && (
+        <div className="grid md:grid-cols-3 gap-6 animate-fadeIn">
+          {/* Ô THÔNG TIN KHÁCH HÀNG */}
+          <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-lg shadow-black/20 col-span-1 flex flex-col items-center text-center">
+            <div className="w-24 h-24 rounded-full bg-slate-700 border-4 border-slate-600 flex items-center justify-center text-3xl font-bold text-slate-300 mb-4">
+              {customerData.name.charAt(0)}
+            </div>
+            <h2 className="text-2xl font-bold text-slate-100">{customerData.name}</h2>
+            <p className="text-slate-400 mb-2">ID: {customerData.id}</p>
+            <p className="text-slate-500 mb-6 text-sm">{customerData.geography} • {customerData.age} tuổi • {customerData.gender}</p>
+            
+            <div className="w-full space-y-3 text-left mt-auto">
+              <div className="flex justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600">
+                <span className="text-slate-400">Số dư hiện tại</span>
+                <span className="font-bold text-slate-100">${customerData.inputBalance.toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between p-3 bg-slate-700/50 rounded-lg border border-slate-600">
+                <span className="text-slate-400">Số dịch vụ đang dùng</span>
+                <span className="font-bold text-blue-400">{customerData.services} Dịch vụ</span>
               </div>
             </div>
-          ))}
-        </div>
-      </div>
+          </div>
 
-      {/* Top Risk Drivers */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border">
-        <h3 className="text-lg font-bold mb-4">Top Risk Drivers (Feature Importance)</h3>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={customer.drivers} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis type="number" />
-            <YAxis type="category" dataKey="feature" width={140} />
-            <Tooltip />
-            <Bar dataKey="impact" fill="#ef4444" radius={4} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+          {/* Ô DỰ ĐOÁN RỜI BỎ (CHURN PREDICTION) */}
+          <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-lg shadow-black/20 col-span-2 flex flex-col justify-center">
+            <h3 className="text-slate-200 font-bold mb-6 text-xl border-b border-slate-700 pb-2">Đánh giá rủi ro rời bỏ (AI Prediction)</h3>
+            <div className="flex flex-col md:flex-row items-center gap-8">
+              <div className="flex-shrink-0 text-center">
+                <div className="relative w-32 h-32 flex items-center justify-center rounded-full border-8 border-slate-700">
+                  <span className={`text-4xl font-black ${customerData.risk_level === 'Cao' ? 'text-rose-500' : 'text-emerald-500'}`}>
+                    {(customerData.churn_probability * 100).toFixed(0)}%
+                  </span>
+                  <svg className="absolute inset-0 w-full h-full transform -rotate-90">
+                    <circle cx="60" cy="60" r="54" fill="none" stroke={customerData.risk_level === 'Cao' ? '#f43f5e' : '#10b981'} strokeWidth="8" strokeDasharray="339.29" strokeDashoffset={339.29 - (339.29 * customerData.churn_probability)} />
+                  </svg>
+                </div>
+                <p className={`mt-3 font-bold uppercase ${customerData.risk_level === 'Cao' ? 'text-rose-500' : 'text-emerald-500'}`}>Mức độ: {customerData.risk_level}</p>
+              </div>
+              <div className="flex-1 bg-slate-900/50 p-5 rounded-xl border border-slate-700 w-full">
+                <h4 className="text-slate-300 font-semibold mb-2">💡 Giải thích & Khuyến nghị:</h4>
+                <p className="text-slate-400 leading-relaxed text-sm">{customerData.recommendation}</p>
+                <div className="mt-4 pt-4 border-t border-slate-700">
+                  <p className="text-rose-400 text-sm font-semibold">Cảnh báo hệ thống:</p>
+                  <p className="text-slate-500 text-sm mt-1">Số tiền gửi tháng qua giảm mạnh, tần suất giao dịch thưa thớt.</p>
+                </div>
+              </div>
+            </div>
+          </div>
 
-      {/* Customer Comparison + Segment */}
-      <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-2xl shadow-sm border">
-          <h3 className="text-lg font-bold mb-4">Customer Comparison</h3>
-          <div className="space-y-4">
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Churn của khách này</span>
-              <span className="font-bold text-red-600">{(customer.churn_probability * 100).toFixed(0)}%</span>
+          {/* CHI TIẾT LỊCH SỬ GIAO DỊCH 3 THÁNG */}
+          <div className="bg-slate-800 border border-slate-700 p-6 rounded-2xl shadow-lg shadow-black/20 col-span-1 md:col-span-3 grid md:grid-cols-2 gap-6">
+            <div className="w-full">
+              <h3 className="text-slate-200 font-bold mb-4">Lịch sử Gửi / Rút tiền (3 Tháng)</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={customerData.history}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="month" stroke="#94a3b8" />
+                  <YAxis stroke="#94a3b8" />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569' }} />
+                  <Legend />
+                  <Bar dataKey="deposit" fill="#10b981" name="Tiền Gửi vào" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="withdraw" fill="#f43f5e" name="Tiền Rút ra" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Churn peer cùng phân khúc</span>
-              <span>{(customer.comparison.peerChurn * 100).toFixed(0)}%</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-gray-500">Số dư trung bình phân khúc</span>
-              <span>${customer.comparison.avgBalance}</span>
+
+            <div className="w-full">
+              <h3 className="text-slate-200 font-bold mb-4">Biến động Số dư</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={customerData.history}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
+                  <XAxis dataKey="month" stroke="#94a3b8" />
+                  <YAxis domain={['dataMin - 5000', 'dataMax + 5000']} stroke="#94a3b8" />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569' }} />
+                  <Legend />
+                  <Line type="monotone" dataKey="balance" stroke="#3b82f6" name="Số dư cuối kỳ" strokeWidth={4} activeDot={{ r: 8 }} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </div>
         </div>
-
-        <div className="bg-white p-6 rounded-2xl shadow-sm border flex flex-col justify-center">
-          <h3 className="text-lg font-bold mb-2">Segment Discovery</h3>
-          <div className="text-3xl font-black text-blue-700">{customer.segment}</div>
-          <p className="text-sm text-gray-500 mt-2">Nhóm khách hàng có giá trị cao nhưng tương tác thấp – cần can thiệp khẩn cấp.</p>
-        </div>
-      </div>
-
-      {/* Mini Simulation */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border">
-        <h3 className="text-lg font-bold mb-4">Mini Simulation: Thử thay đổi thông số</h3>
-        <div className="grid grid-cols-2 gap-6">
-          <div>
-            <label className="block text-sm font-medium mb-2">Số dư mới (USD)</label>
-            <input
-              type="number"
-              value={simBalance}
-              onChange={e => setSimBalance(Number(e.target.value))}
-              className="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Login 30 ngày</label>
-            <input
-              type="number"
-              value={simLogin}
-              onChange={e => setSimLogin(Number(e.target.value))}
-              className="w-full border rounded-lg p-3 focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-        </div>
-        <button
-          onClick={runMiniSimulation}
-          className="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition"
-        >
-          Chạy Simulation
-        </button>
-        <div className="mt-6 p-4 bg-gray-50 rounded-xl text-center">
-          <p className="text-sm text-gray-500">Xác suất churn sau khi thay đổi</p>
-          <p className="text-4xl font-black text-red-600 mt-1">{(simChurn * 100).toFixed(1)}%</p>
-        </div>
-      </div>
+      )}
     </div>
   );
 };
 
-// --- COMPONENT CHÍNH (App) ---
+// ==========================================
+// COMPONENT CHÍNH (APP SHELL)
+// ==========================================
 export default function App() {
-  const { register, handleSubmit, setValue, formState: { errors } } = useForm();
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
-  const [errorMsg, setErrorMsg] = useState('');
-  const [view, setView] = useState('overview'); // 'overview' | 'prediction' | 'detail'
-  const [selectedCustomer, setSelectedCustomer] = useState(null);
-
-  // Điền data demo
-  const fillDemoData = () => {
-    const demoData = {
-      CreditScore: 650, Geography: "France", Gender: "Female", Age: 42,
-      Tenure: 5, Balance: 105000, NumOfProducts: 1, HasCrCard: 1,
-      IsActiveMember: 0, EstimatedSalary: 85000, login_count_last_30d: 4,
-      num_transactions_last_90d: 12, avg_transaction_amount: 500, complaint_count_last_12m: 1
-    };
-    Object.keys(demoData).forEach(key => setValue(key, demoData[key]));
-  };
-
-  // Gửi API predict
-  const onSubmit = async (data) => {
-    setLoading(true);
-    setErrorMsg('');
-    setResult(null);
-    try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-      const response = await axios.post(`${API_URL}/predict`, data);
-      setResult({ ...response.data, inputBalance: data.Balance });
-    } catch (error) {
-      setErrorMsg('Lỗi kết nối đến Server. Vui lòng kiểm tra Backend.');
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Chuyển sang view Detail
-  const handleSelectCustomer = (id) => {
-    const customer = mockCustomers.find(c => c.id === id);
-    if (customer) {
-      setSelectedCustomer(customer);
-      setView('detail');
-    }
-  };
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' hoặc 'customer'
 
   return (
-    <div className="min-h-screen bg-gray-50 font-sans text-gray-800">
-      <div className="max-w-7xl mx-auto flex">
-        {/* SIDEBAR NAVIGATION */}
-        <div className="w-64 bg-white border-r border-gray-100 p-6 h-screen sticky top-0">
-          <div className="mb-10">
-            <h1 className="text-2xl font-extrabold text-blue-900">ChurnGuard AI</h1>
-            <p className="text-xs text-gray-400 mt-1">BANK DASHBOARD</p>
+    <div className="min-h-screen bg-slate-900 font-sans text-slate-200 flex">
+      {/* SIDEBAR */}
+      <div className="w-64 bg-slate-950 border-r border-slate-800 p-6 flex flex-col">
+        <div className="mb-10 flex items-center gap-3">
+          <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center font-bold text-white shadow-lg shadow-blue-500/50">C</div>
+          <div>
+            <h1 className="text-xl font-black text-white tracking-wide">ChurnGuard</h1>
+            <p className="text-[10px] text-blue-400 font-bold tracking-widest uppercase mt-1">Analytics Pro</p>
           </div>
-
-          <nav className="space-y-1">
-            <button
-              onClick={() => { setView('overview'); setSelectedCustomer(null); }}
-              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 ${view === 'overview' ? 'bg-blue-50 text-blue-700 font-semibold' : 'hover:bg-gray-100'}`}
-            >
-              📊 Tổng quan Ngân hàng
-            </button>
-            <button
-              onClick={() => { setView('prediction'); setSelectedCustomer(null); }}
-              className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 ${view === 'prediction' ? 'bg-blue-50 text-blue-700 font-semibold' : 'hover:bg-gray-100'}`}
-            >
-              🔍 Dự báo Khách hàng Mới
-            </button>
-          </nav>
-
-          <div className="mt-12 text-xs text-gray-400">DEMO DATA</div>
-          <div className="mt-2 text-[10px] text-gray-500">Click Alert Center để xem chi tiết khách hàng</div>
         </div>
 
-        {/* MAIN CONTENT */}
-        <div className="flex-1 p-8">
-          {/* HEADER */}
-          <header className="mb-8 flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-extrabold text-blue-900">
-                {view === 'overview' && 'Tổng quan Ngân hàng'}
-                {view === 'prediction' && 'Dự báo Rủi ro Cá nhân'}
-                {view === 'detail' && 'Chi tiết Khách hàng'}
-              </h1>
-              <p className="text-gray-500">
-                {view === 'overview' && 'KPIs • Biểu đồ • Alert Center'}
-                {view === 'prediction' && 'Nhập thông tin → AI dự đoán churn'}
-                {view === 'detail' && 'Journey • Drivers • Simulation'}
-              </p>
-            </div>
-            {view === 'prediction' && (
-              <button
-                onClick={fillDemoData}
-                className="text-sm bg-indigo-100 text-indigo-700 px-4 py-2 rounded-full hover:bg-indigo-200 transition"
-              >
-                ⚡ Điền data Demo
-              </button>
-            )}
-          </header>
+        <nav className="space-y-3 flex-1">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all font-medium ${activeTab === 'overview' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+            Tổng quan (Dashboard)
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('customer')}
+            className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 transition-all font-medium ${activeTab === 'customer' ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40' : 'text-slate-400 hover:bg-slate-800 hover:text-slate-200'}`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"></path></svg>
+            Tra cứu Khách hàng
+          </button>
+        </nav>
+      </div>
 
-          {/* VIEW: TỔNG QUAN */}
-          {view === 'overview' && <BankOverview onSelectCustomer={handleSelectCustomer} />}
+      {/* KHU VỰC NỘI DUNG CHÍNH */}
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto bg-[#0b1120]">
+        <header className="sticky top-0 z-10 bg-[#0b1120]/90 backdrop-blur-md border-b border-slate-800 px-8 py-6">
+          <h2 className="text-2xl font-bold text-white">
+            {activeTab === 'overview' ? 'Bank Analytics Dashboard' : 'Tra cứu & Phân tích Cá nhân'}
+          </h2>
+          <p className="text-sm text-slate-400 mt-1">
+            {activeTab === 'overview' ? 'Góc nhìn tổng thể về hiệu suất và rủi ro khách hàng' : 'Nhập mã khách hàng để xem chi tiết dự báo rời bỏ'}
+          </p>
+        </header>
 
-          {/* VIEW: DỰ BÁO MỚI (GIỮ NGUYÊN CODE CŨ CỦA BẠN) */}
-          {view === 'prediction' && (
-            <div className="grid md:grid-cols-2 gap-8">
-              {/* FORM TRÁI */}
-              <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100">
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold">Thông tin khách hàng</h2>
-                </div>
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                  {/* ... (giữ nguyên toàn bộ form của bạn, chỉ rút gọn một chút để ngắn) */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-medium mb-1">Tuổi</label><input type="number" {...register("Age", { required: true })} className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500" /></div>
-                    <div><label className="block text-sm font-medium mb-1">Điểm tín dụng</label><input type="number" {...register("CreditScore", { required: true })} className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500" /></div>
-                    <div><label className="block text-sm font-medium mb-1">Số dư (Balance)</label><input type="number" step="any" {...register("Balance", { required: true })} className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500" /></div>
-                    <div><label className="block text-sm font-medium mb-1">Lương ước tính</label><input type="number" step="any" {...register("EstimatedSalary", { required: true })} className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500" /></div>
-                    <div><label className="block text-sm font-medium mb-1">Số lượng sản phẩm</label><input type="number" {...register("NumOfProducts", { required: true })} className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500" /></div>
-                    <div><label className="block text-sm font-medium mb-1">Login (30 ngày)</label><input type="number" {...register("login_count_last_30d", { required: true })} className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500" /></div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Quốc gia</label>
-                      <select {...register("Geography")} className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
-                        <option value="France">France</option><option value="Germany">Germany</option><option value="Spain">Spain</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Giới tính</label>
-                      <select {...register("Gender")} className="w-full border rounded-lg p-2 focus:ring-2 focus:ring-blue-500">
-                        <option value="Female">Nữ</option><option value="Male">Nam</option>
-                      </select>
-                    </div>
-                  </div>
-                  {/* hidden fields */}
-                  <input type="hidden" {...register("Tenure")} defaultValue={5} />
-                  <input type="hidden" {...register("HasCrCard")} defaultValue={1} />
-                  <input type="hidden" {...register("IsActiveMember")} defaultValue={1} />
-                  <input type="hidden" {...register("num_transactions_last_90d")} defaultValue={15} />
-                  <input type="hidden" {...register("avg_transaction_amount")} defaultValue={300} />
-                  <input type="hidden" {...register("complaint_count_last_12m")} defaultValue={0} />
-
-                  <button type="submit" disabled={loading} className="w-full bg-blue-600 text-white font-bold py-3 rounded-lg mt-4 hover:bg-blue-700 disabled:bg-gray-400">
-                    {loading ? 'Đang phân tích...' : 'Phân tích Rủi ro'}
-                  </button>
-                </form>
-                {Object.keys(errors).length > 0 && <p className="text-red-500 text-sm mt-2">Vui lòng điền đầy đủ.</p>}
-                {errorMsg && <p className="text-red-500 text-sm mt-2">{errorMsg}</p>}
-              </div>
-
-              {/* KẾT QUẢ PHẢI (prediction view) */}
-              <div className="flex flex-col">
-                {!result && !loading && (
-                  <div className="flex-1 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 p-8 text-center">
-                    Nhập thông tin và bấm Phân tích để xem kết quả
-                  </div>
-                )}
-                {loading && (
-                  <div className="flex-1 bg-white rounded-2xl shadow-md flex flex-col items-center justify-center">
-                    <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                    <p className="mt-4 text-gray-600 font-medium">Đang kết nối AI Model...</p>
-                  </div>
-                )}
-                {result && !loading && (
-                  <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-100 flex-1">
-                    <h2 className="text-2xl font-bold mb-4">Kết quả Chẩn đoán</h2>
-                    <div className="grid grid-cols-2 gap-4 mb-6">
-                      <div className="p-4 rounded-xl bg-gray-50 border">
-                        <p className="text-sm text-gray-500">Xác suất rời bỏ</p>
-                        <p className={`text-3xl font-black ${result.churn_probability > 0.5 ? 'text-red-600' : 'text-green-600'}`}>
-                          {(result.churn_probability * 100).toFixed(1)}%
-                        </p>
-                      </div>
-                      <div className="p-4 rounded-xl bg-gray-50 border">
-                        <p className="text-sm text-gray-500">Mức độ rủi ro</p>
-                        <p className={`text-xl font-bold mt-1 ${result.risk_level === 'Cao' ? 'text-red-600' : result.risk_level === 'Trung bình' ? 'text-yellow-600' : 'text-green-600'}`}>
-                          {result.risk_level}
-                        </p>
-                      </div>
-                    </div>
-                    <div className={`p-4 rounded-lg border-l-4 ${result.risk_level === 'Cao' ? 'bg-red-50 border-red-500' : result.risk_level === 'Trung bình' ? 'bg-yellow-50 border-yellow-500' : 'bg-green-50 border-green-500'}`}>
-                      <p className="font-bold text-gray-800 mb-1">Khuyến nghị:</p>
-                      <p className="text-sm text-gray-700">{result.recommendation}</p>
-                    </div>
-                    <ChurnPredictionChart currentBalance={result.inputBalance} baseChurnProb={result.churn_score} />
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* VIEW: CHI TIẾT KHÁCH HÀNG */}
-          {view === 'detail' && selectedCustomer && (
-            <CustomerDetail customer={selectedCustomer} onBack={() => { setView('overview'); setSelectedCustomer(null); }} />
-          )}
-        </div>
+        <main className="p-8">
+          {activeTab === 'overview' ? <BankOverview /> : <CustomerSearchTab />}
+        </main>
       </div>
     </div>
   );
