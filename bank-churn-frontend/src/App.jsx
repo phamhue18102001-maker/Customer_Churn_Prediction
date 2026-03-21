@@ -13,225 +13,315 @@ ChartJS.register(
   BarElement, Tooltip, Legend
 );
 
-const App = () => {
+const months = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
+
+// ===== DATA MẪU =====
+const dataBank = {
+  customerTotal: 12450,
+  churn: [12,15,18,14,22,19,25,20,23,18,21,19], // %
+  deposit: [120,130,125,140,150,155,160,170,165,175,180,190], // Tỷ
+  productUsage: [60,68,65,75,80,78,82,88,90,95,100,108], // %
+  complaints: [20,25,18,30,28,22,35,30,27,26,24,22], // lần
+  appUsage: [500,520,545,600,630,665,710,750,780,820,850,900], // 1k/min
+  transaction: [150,170,165,180,200,210,220,230,240,260,280,300], // triệu lượt
+};
+
+const dataCustomer = {
+  name: "Nguyễn Văn A",
+  churn: [9,10,12,14,16,15,18,19,17,18,19,21],
+  deposit: [2,2.2,2.1,2.3,2.5,2.7,2.6,2.8,3.0,3.1,3.2,3.4],
+  productUsage: [2,2.5,2.7,3,3.2,3.4,3.4,3.7,3.9,4.0,4.2,4.3],
+  complaints: [0,1,0,1,1,1,0,1,0,1,0,1],
+  appUsage: [12,13,15,14,15,16,17,18,20,21,21,22],
+  transaction: [5,5.5,5.7,6,6.4,6.8,7,7.2,7.8,8.0,8.4,8.8],
+};
+
+function getTrend(arr) {
+  // So sánh 3 tháng gần nhất và 3 tháng trước đó
+  const last3 = arr.slice(-3).reduce((a,b)=>a+b,0);
+  const prev3 = arr.slice(-6,-3).reduce((a,b)=>a+b,0);
+  return {
+    trend: last3 - prev3,
+    last3, prev3
+  };
+}
+
+const Card = ({ label, value, badge, up }) => (
+  <div className={`card ${up === true ? "up" : up === false ? "down" : ""}`}>
+    <div className="card-title">{label}</div>
+    <div className="card-value">
+      {value}
+      {badge && <span className="badge">{badge}</span>}
+    </div>
+  </div>
+);
+
+const DashboardSection = ({
+  title, children
+}) => (
+  <div className="section">
+    <h3>{title}</h3>
+    <div className="dashboard-grid">{children}</div>
+  </div>
+);
+
+export default function App() {
   const [view, setView] = useState("overview");
   const [search, setSearch] = useState("");
-  const [customer, setCustomer] = useState(null);
+  const [customerData, setCustomerData] = useState(null);
 
-  const months = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
+  // TỔNG QUAN NGÂN HÀNG
+  const churnTrend = getTrend(dataBank.churn);
+  const depositGrowth = ((dataBank.deposit[11] - dataBank.deposit[0]) / dataBank.deposit[0] * 100).toFixed(1);
+  const productGrowth = ((dataBank.productUsage[11] - dataBank.productUsage[0]) / dataBank.productUsage[0] * 100).toFixed(1);
+  const appGrowth = ((dataBank.appUsage[11] - dataBank.appUsage[0]) / dataBank.appUsage[0] * 100).toFixed(1);
+  const txnGrowth = ((dataBank.transaction[11] - dataBank.transaction[0]) / dataBank.transaction[0] * 100).toFixed(1);
 
-  // ===== DATA =====
-  const churn = [12,15,18,14,22,19,25,20,23,18,21,19];
-  const deposit = [120,130,125,140,150,155,160,170,165,175,180,190];
-  const usage = [200,230,210,260,280,300,320,340,360,380,400,420];
-  const complaints = [20,25,18,30,28,22,35,30,27,26,24,22];
+  // INSIGHT TỔNG QUAN
+  const insight = useMemo(() => {
+    let text = "";
+    if (churnTrend.trend > 0) text += "⚠️ Sự rời bỏ tăng so với 3 tháng trước.";
+    else if (churnTrend.trend < 0) text += "✅ Sự rời bỏ đang giảm dần.";
+    else text += "Sự rời bỏ giữ mức ổn định.";
+    text += ` Nguồn vốn tăng +${depositGrowth}%. Số KH sử dụng sản phẩm tăng +${productGrowth}%.`;
+    return text;
+  }, [churnTrend, depositGrowth, productGrowth]);
 
+  // TỔNG QUAN KHÁCH HÀNG CỤ THỂ
+  const churnTrendCus = getTrend(dataCustomer.churn);
+  const depositGrowthCus = ((dataCustomer.deposit[11] - dataCustomer.deposit[0]) / dataCustomer.deposit[0] * 100).toFixed(1);
+  const productGrowthCus = ((dataCustomer.productUsage[11] - dataCustomer.productUsage[0]) / dataCustomer.productUsage[0] * 100).toFixed(1);
 
-  const transaction = [150,170,165,180,200,210,220,230,240,260,280,300];
-
-  // ===== CALC =====
-  const last3 = churn.slice(-3).reduce((a,b)=>a+b,0);
-  const prev3 = churn.slice(-6,-3).reduce((a,b)=>a+b,0);
-  const churnTrend = last3 - prev3;
-
-  const depositGrowth = ((deposit[11] - deposit[0]) / deposit[0] * 100).toFixed(1);
-
-  const insight = useMemo(()=>{
-    return churnTrend > 0
-      ? "⚠️ Churn tăng mạnh trong 3 tháng gần đây → cần giữ chân KH ngay"
-      : "✅ Churn giảm → chiến lược đang hiệu quả";
-  },[churnTrend]);
-
-  // ===== SEARCH =====
   const handleSearch = () => {
-    setCustomer({
-      name: "Nguyễn Văn A",
-      churnRisk: "87%",
-      balance: "250 triệu",
-      usage: [200,180,150],
-      transaction: [120,100,80]
-    });
-    setView("customer");
+    // Giả lập trả về dataCustomer
+    setCustomerData(dataCustomer);
+    setView('customer');
   };
-
-
-
 
   return (
     <div className="app">
-
       {/* HEADER */}
       <div className="header">
-        <h1>🏦 BANK ANALYTICS DASHBOARD</h1>
-
+        <div className="logo">🏦 Bank360 Analytics</div>
         <div className="toolbar">
-          <button onClick={()=>setView("overview")}>Tổng quan</button>
-          <button onClick={()=>setView("customer")}>Khách hàng</button>
-
+          <button className={view==="overview"?"active":""} onClick={()=>setView("overview")}>Tổng quan NH</button>
+          <button className={view==="customer"?"active":""} onClick={()=>setView("customer")}>Khách hàng</button>
           <input
             placeholder="Tìm khách hàng..."
             value={search}
-            onChange={(e)=>setSearch(e.target.value)}
+            onChange={e=>setSearch(e.target.value)}
+            onKeyDown={e=>e.key==='Enter'&&handleSearch()}
           />
-          <button onClick={handleSearch}>Search</button>
+          <button onClick={handleSearch}>Tìm</button>
         </div>
       </div>
 
+      {/* LAYOUT */}
       <div className="layout">
-
-        {/* ===== LEFT CONTROL PANEL (1/3) ===== */}
+        {/* SIDEBAR: 1/3 */}
         <div className="sidebar">
-
-          <h3>🔍 Tìm kiếm</h3>
-          <input
-            placeholder="Nhập tên KH..."
-            value={search}
-            onChange={(e)=>setSearch(e.target.value)}
-          />
+          <h3>🔍 Tìm kiếm khách hàng</h3>
+          <input placeholder="Nhập tên KH..." value={search} onChange={e=>setSearch(e.target.value)} />
           <button onClick={handleSearch}>Tìm</button>
-
-          <h3>📊 Bộ lọc</h3>
+          <h3>📊 Phân tích</h3>
+          <button onClick={()=>setView("overview")}>Tổng quan ngân hàng</button>
+          <button onClick={()=>setView("customer")}>Tổng quan khách hàng</button>
+          <h3>⚙️ Bộ lọc</h3>
           <select>
-            <option>Tất cả KH</option>
+            <option>Tất cả</option>
             <option>VIP</option>
             <option>Thường</option>
           </select>
-
           <select>
             <option>12 tháng</option>
             <option>6 tháng</option>
             <option>3 tháng</option>
           </select>
-
-          <h3>⚙️ Phân tích</h3>
-          <button>Churn</button>
-          <button>Deposit</button>
-          <button>Usage</button>
-          <button>Complaint</button>
-
-          <h3>📈 Hiển thị</h3>
-          <label><input type="checkbox" defaultChecked /> Churn</label>
-          <label><input type="checkbox" defaultChecked /> Deposit</label>
-          <label><input type="checkbox" defaultChecked /> Giao dịch</label>
-
+          <h3>📝 Kết quả phân tích</h3>
+          <div className="sidebar-result">
+            {view==="overview"
+              ? insight
+              : customerData && (
+                  <div>{churnTrendCus.trend > 0 ? "Churn cá nhân tăng" : "Churn giảm hoặc ổn định"}<br />
+                  Tăng trưởng nguồn gửi: {depositGrowthCus}%</div>
+                )
+            }
+          </div>
         </div>
 
-        {/* ===== RIGHT DASHBOARD (2/3) ===== */}
+        {/*MAIN: 2/3*/}
         <div className="main">
 
-          {/* ===== OVERVIEW ===== */}
-          {view === "overview" && (
+          {/* TỔNG QUAN NGÂN HÀNG */}
+          {view==="overview" && (
             <>
-              <h2>📊 TỔNG QUAN NGÂN HÀNG</h2>
-
-              {/* KPI */}
+              <h2>📊 Tổng quan hoạt động ngân hàng</h2>
+              {/* KPI ROW 1: CHURN, DEPOSIT, PRODUCT USAGE */}
               <div className="kpi">
-                <div className="card">👥 12,450 KH</div>
-                <div className="card">⚠️ Churn: {churn[11]}%</div>
-                <div className="card">💰 Growth: +{depositGrowth}%</div>
-                <div className={`card ${churnTrend > 0 ? "down" : "up"}`}>
-                  📉 3M Trend: {churnTrend > 0 ? "↑" : "↓"} {churnTrend}
-                </div>
+                <Card label="👥 Tổng KH" value={dataBank.customerTotal} />
+                <Card label="⚠️ Churn hiện tại" value={dataBank.churn[11]+"%"} up={churnTrend.trend<=0} />
+                <Card label="💰 Nguồn tiền gửi" value={dataBank.deposit[11]+" tỷ"} badge={`+${depositGrowth}%`} up={depositGrowth>0} />
+                <Card label="📦 Sử dụng SP (%)" value={dataBank.productUsage[11]+"%"} badge={`+${productGrowth}%`} up={productGrowth>0} />
               </div>
 
-              {/* ===== CHURN ===== */}
-              <div className="section">
-                <h3>📉 CHURN ANALYSIS</h3>
-                <div className="grid">
-                  <div className="chart">
-                    <Line data={{
-                      labels: months,
-                      datasets: [{ data: churn, borderColor: "#ef4444" }]
-                    }} />
-                  </div>
-
-                  <div className="chart">
-                    <Bar data={{
-                      labels: months,
-                      datasets: [{ data: complaints, backgroundColor: "#f59e0b" }]
-                    }} />
-                  </div>
-                </div>
+              {/* KPI ROW 2: APP & GIAO DỊCH */}
+              <div className="kpi">
+                <Card label="📱 Dùng app (nghìn phút)" value={dataBank.appUsage[11]} badge={`+${appGrowth}%`} up={appGrowth>0}/>
+                <Card label="💸 Số giao dịch" value={dataBank.transaction[11]} badge={`+${txnGrowth}%`} up={txnGrowth>0}/>
+                <Card label="🗣 Khiếu nại T12" value={dataBank.complaints[11]} />
+                <Card label="3M vs trước "
+                  value={churnTrend.last3+" / "+churnTrend.prev3}
+                  badge={`${churnTrend.trend>0?"+":"-"}${Math.abs(churnTrend.trend)}`}
+                  up={churnTrend.trend<=0}
+                />
               </div>
 
-              {/* ===== FINANCE ===== */}
-              <div className="section">
-                <h3>💰 FINANCIAL FLOW</h3>
-                <div className="grid">
+              {/* GRID CHART SECTION */}
+              <DashboardSection title="1️⃣ Sự rời bỏ - tiền gửi - sản phẩm">
+                {/* Hàng 1: Churn, Deposit, sản phẩm */}
+                <div className="row-charts">
                   <div className="chart">
-                    <Line data={{
+                    <div className="chart-title">Churn (%)</div>
+                    <Line height={70} data={{
                       labels: months,
-                      datasets: [{ data: deposit, borderColor: "#22d3ee" }]
+                      datasets: [{label:"Churn",data:dataBank.churn,borderColor:"#ef4444", tension:.3}]
                     }} />
                   </div>
-
                   <div className="chart">
-                    <Line data={{
+                    <div className="chart-title">Tiền gửi (tỷ)</div>
+                    <Line height={70} data={{
                       labels: months,
-                      datasets: [{ data: transaction, borderColor: "#a78bfa" }]
+                      datasets: [{label:"Deposit",data:dataBank.deposit,borderColor:"#22d3ee", tension:.3}]
+                    }} />
+                  </div>
+                  <div className="chart">
+                    <div className="chart-title">Sử dụng sản phẩm (%)</div>
+                    <Line height={70} data={{
+                      labels: months,
+                      datasets: [{label:"Usage",data:dataBank.productUsage,borderColor:"#10b981", tension:.3}]
                     }} />
                   </div>
                 </div>
-              </div>
-
-              {/* ===== ACTIVITY ===== */}
-              <div className="section">
-                <h3>📱 CUSTOMER ACTIVITY</h3>
-                <div className="grid">
+              </DashboardSection>
+              <DashboardSection title="2️⃣ Khiếu nại khách hàng">
+                <div className="row-charts">
                   <div className="chart">
-                    <Line data={{
+                    <div className="chart-title">Số khiếu nại</div>
+                    <Bar height={70}
+                      data={{
+                        labels: months,
+                        datasets:[{label:"Khiếu nại",data:dataBank.complaints,backgroundColor:"#f59e0b"}]
+                      }}
+                    />
+                  </div>
+                </div>
+              </DashboardSection>
+              <DashboardSection title="3️⃣ App & giao dịch">
+                <div className="row-charts">
+                  <div className="chart">
+                    <div className="chart-title">Tần suất dùng App</div>
+                    <Line height={70} data={{
                       labels: months,
-                      datasets: [{ data: usage, borderColor: "#10b981" }]
+                      datasets:[{
+                        label:"App Usage",
+                        data:dataBank.appUsage,
+                        borderColor:"#6366f1", tension:.3
+                      }]
                     }} />
                   </div>
-
                   <div className="chart">
-                    <Line data={{
+                    <div className="chart-title">Tần suất giao dịch (triệu lượt)</div>
+                    <Line height={70} data={{
                       labels: months,
-                      datasets: [{ data: transaction, borderColor: "#f97316" }]
+                      datasets:[{
+                        label:"Giao dịch",
+                        data:dataBank.transaction,
+                        borderColor:"#a78bfa", tension:.3
+                      }
+                      ]
                     }} />
                   </div>
                 </div>
-              </div>
-
-              {/* INSIGHT */}
+              </DashboardSection>
               <div className="insight">
-                <h3>🔮 AI INSIGHT</h3>
+                <h3>🔮 AI Insight</h3>
                 <p>{insight}</p>
-                <p>
-                  → Churn {churnTrend > 0 ? "tăng" : "giảm"} so với 3 tháng trước  
-                  → Cần điều chỉnh chiến lược giữ chân khách hàng
+                <p>Churn [3 tháng] mới: {churnTrend.last3}. Trước đó: {churnTrend.prev3}. <br />
+                {churnTrend.trend>0 ? "Cần tăng giữ chân KH" : "Tín hiệu tích cực! Hãy phát huy."}
                 </p>
               </div>
             </>
           )}
 
-          {/* ===== CUSTOMER ===== */}
-          {view === "customer" && customer && (
+          {/* TỔNG QUAN KHÁCH HÀNG */}
+          {view === 'customer' && customerData && (
             <>
-              <h2>👤 CHI TIẾT KHÁCH HÀNG</h2>
+              <h2>👤 Khách hàng - {customerData.name}</h2>
 
               <div className="kpi">
-                <div className="card">{customer.name}</div>
-                <div className="card">Risk: {customer.churnRisk}</div>
-                <div className="card">Balance: {customer.balance}</div>
+                <Card label="⚠️ Churn KH" value={customerData.churn[11]+"%"} up={churnTrendCus.trend<=0} />
+                <Card label="💰 Tiền gửi hiện tại" value={customerData.deposit[11]+" tỷ"} badge={`+${depositGrowthCus}%`} up={depositGrowthCus>0} />
+                <Card label="📦 Dùng sản phẩm" value={customerData.productUsage[11]} badge={`+${productGrowthCus}%`} up={productGrowthCus>0} />
+                <Card label="🗣 Khiếu nại 3T" value={customerData.complaints.slice(-3).reduce((a,b)=>a+b,0)} />
               </div>
 
-              <div className="grid">
-                <div className="chart">
-                  <Line data={{
-                    labels: ['T-2','T-1','Now'],
-                    datasets: [{ data: customer.usage, borderColor: "#22d3ee" }]
-                  }} />
+              {/* Biểu đồ cho KH */}
+              <DashboardSection title="Sự rời bỏ & tài chính KH">
+                <div className="row-charts">
+                  <div className="chart">
+                    <div className="chart-title">Churn (%)</div>
+                    <Line height={70} data={{
+                      labels: months,
+                      datasets:[{label:"Churn",data:customerData.churn,borderColor:"#ef4444"}]
+                    }}/>
+                  </div>
+                  <div className="chart">
+                    <div className="chart-title">Tiền gửi (tỷ)</div>
+                    <Line height={70} data={{
+                      labels: months,
+                      datasets:[{label:"Tiền gửi",data:customerData.deposit,borderColor:"#22d3ee"}]
+                    }}/>
+                  </div>
+                  <div className="chart">
+                    <div className="chart-title">SP sử dụng</div>
+                    <Line height={70} data={{
+                      labels: months,
+                      datasets:[{label:"SP",data:customerData.productUsage,borderColor:"#10b981"}]
+                    }}/>
+                  </div>
                 </div>
-
-                <div className="chart">
-                  <Line data={{
-                    labels: ['T-2','T-1','Now'],
-                    datasets: [{ data: customer.transaction, borderColor: "#ef4444" }]
-                  }} />
+              </DashboardSection>
+              <DashboardSection title="Hoạt động app & transaction KH">
+                <div className="row-charts">
+                  <div className="chart">
+                    <div className="chart-title">Tần su���t dùng app</div>
+                    <Line height={70} data={{
+                      labels: months,
+                      datasets:[{label:"App",data:customerData.appUsage,borderColor:"#6366f1"}]
+                    }}/>
+                  </div>
+                  <div className="chart">
+                    <div className="chart-title">Giao dịch/tháng</div>
+                    <Line height={70} data={{
+                      labels: months,
+                      datasets:[{label:"Txn",data:customerData.transaction,borderColor:"#a78bfa"}]
+                    }}/>
+                  </div>
                 </div>
-              </div>
+              </DashboardSection>
+              <DashboardSection title="Khiếu nại">
+                <div className="row-charts">
+                  <div className="chart">
+                    <div className="chart-title">Khiếu nại/tháng</div>
+                    <Bar height={70}
+                      data={{
+                        labels: months,
+                        datasets: [{label:"Khiếu nại",data:customerData.complaints,backgroundColor:"#f59e0b"}]
+                      }}
+                    />
+                  </div>
+                </div>
+              </DashboardSection>
             </>
           )}
 
@@ -239,8 +329,4 @@ const App = () => {
       </div>
     </div>
   );
-};
-
-export default App;
-
-
+}
