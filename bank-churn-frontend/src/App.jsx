@@ -151,7 +151,47 @@ export default function App() {
 
         {/*MAIN: 2/3*/}
         <div className="main">
+           {/* --- KPI CARD HÀNG 1 --- */}
+          <h1 className="main-title">Tổng quan hoạt động ngân hàng</h1>
+          <div className="kpi-row">
+            <div className="kpi-card">👥 <span className="kpi-label">KH:</span> <span className="kpi-value">12,450</span></div>
+            <div className="kpi-card">⚠️ <span className="kpi-label">Churn:</span> <span className="kpi-value">{dataBank.churn[11]}%</span></div>
+            <div className="kpi-card">💰 <span className="kpi-label">Tiền gửi:</span> <span className="kpi-value">{dataBank.deposit[11]} tỷ</span></div>
+            <div className="kpi-card">📦 <span className="kpi-label">Sản phẩm:</span> <span className="kpi-value">{dataBank.productUsage[11]}%</span></div>
+          </div>
+          {/* --- KPI HÀNG 2 --- */}
+          <div className="kpi-row">
+            <div className="kpi-card">📱 <span className="kpi-label">Dùng app:</span> <span className="kpi-value">{dataBank.appUsage[11]}</span></div>
+            <div className="kpi-card">💸 <span className="kpi-label">Giao dịch:</span> <span className="kpi-value">{dataBank.transaction[11]}</span></div>
+            <div className="kpi-card">🗣 <span className="kpi-label">Khiếu nại:</span> <span className="kpi-value">{dataBank.complaints[11]}</span></div>
+          </div>
 
+          {/* --- CHARTS DÒNG 1 --- */}
+          <div className="chart-row">
+            <div className="chart small">
+              <div className="chart-title">Churn (%)</div>
+              <Line data={{ labels: months, datasets: [{ data: dataBank.churn, borderColor: "#ef4444" }] }} height={90} options={{ maintainAspectRatio: false }}/>
+            </div>
+            <div className="chart small">
+              <div className="chart-title">Tiền gửi</div>
+              <Line data={{ labels: months, datasets: [{ data: dataBank.deposit, borderColor: "#22d3ee" }] }} height={90} options={{ maintainAspectRatio: false }}/>
+            </div>
+          </div>
+          {/* --- CHARTS DÒNG 2 --- */}
+          <div className="chart-row">
+            <div className="chart small">
+              <div className="chart-title">Sử dụng SP</div>
+              <Line data={{ labels: months, datasets: [{ data: dataBank.productUsage, borderColor: "#10b981" }] }} height={90} options={{ maintainAspectRatio: false }}/>
+            </div>
+            <div className="chart small">
+              <div className="chart-title">Khiếu nại</div>
+              <Bar data={{ labels: months, datasets: [{ data: dataBank.complaints, backgroundColor: "#f59e0b" }] }} height={90} options={{ maintainAspectRatio: false }}/>
+            </div>
+            <div className="chart small">
+              <div className="chart-title">App Usage</div>
+              <Line data={{ labels: months, datasets: [{ data: dataBank.appUsage, borderColor: "#6366f1" }] }} height={90} options={{ maintainAspectRatio: false }}/>
+            </div>
+          </div>
           {/* TỔNG QUAN NGÂN HÀNG */}
           {view==="overview" && (
             <>

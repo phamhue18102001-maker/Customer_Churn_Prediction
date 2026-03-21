@@ -1,11 +1,8 @@
 html, body, #root {
-  height: 100%;
-  margin: 0;
-  background: linear-gradient(135deg, #020617, #0f172a 60%, #38b6ff 120%);
+  font-size: 16px;  
+  background: linear-gradient(135deg, #020617 0%, #0f172a 60%, #38b6ff 120%);
   color: #e6ecff;
-  font-family: 'Inter', 'Roboto', Arial, sans-serif;
-  /* Đậm fintech */
-}
+  font-family: 'Inter', 'Roboto', Arial, sans-serif;}
 
 * { box-sizing: border-box; }
 /* HEADER cho App.jsx đã style riêng, có thể bỏ header ở đây */
