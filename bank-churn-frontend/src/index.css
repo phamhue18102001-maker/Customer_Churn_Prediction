@@ -1,16 +1,13 @@
 html, body, #root {
   font-size: 16px;  
-  background: linear-gradient(135deg, #020617 0%, #0f172a 60%, #38b6ff 120%);
+  background: linear-gradient(120deg, #141e30 11%, #243b55 79%, #3fd0ff 120%);
   color: #e6ecff;
-  font-family: 'Inter', 'Roboto', Arial, sans-serif;}
-
-* { box-sizing: border-box; }
-/* HEADER cho App.jsx đã style riêng, có thể bỏ header ở đây */
-
-a {
-  color: #38b6ff;
-  text-decoration: none;
+  font-family: 'Inter', 'Roboto', Arial, sans-serif;
+  overscroll-behavior-y: none;
+  min-height:100vh;
 }
+* { box-sizing: border-box; }
+a { color: #38b6ff; text-decoration: none; }
 
 ::-webkit-scrollbar-track { background: #19233c;}
 ::-webkit-scrollbar-thumb { background: #334155; border-radius: 8px;}
