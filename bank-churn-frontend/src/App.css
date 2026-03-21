@@ -1,146 +1,44 @@
-/* ==================== FILE 2: app.css (ĐÃ VIẾT LẠI - DASHBOARD SPECIFIC) ==================== */
-/* Thiết lập cơ bản + biến đồng bộ hoàn toàn với index.css (đẹp, tối, ngân hàng) */
-:root {
-  --bg-main: #0b1120;
-  --accent: #3b82f6;
-  --border: #1e293b;
-  --text-main: #94a3b8;
-  --text-head: #f1f5f9;
-  --card-bg: #1e2937;
-  --shadow: 0 25px 50px -12px rgb(0 0 0 / 0.45), 0 10px 15px -3px rgb(0 0 0 / 0.35);
-  --accent-soft: rgba(59, 130, 246, 0.15);
+/* ==================== FILE app.css – DASHBOARD SIÊU ĐẸP ==================== */
+.glass {
+  background: rgba(26, 35, 56, 0.92);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(51, 65, 85, 0.6);
+  box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.6),
+              inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
-/* Reset */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: inherit; /* Kế thừa background đẹp từ index.css */
-  color: var(--text-main);
-  -webkit-font-smoothing: antialiased;
-}
-
-/* ==================== DASHBOARD CARDS - VIỀN + ĐỔ BÓNG (tất cả phần tổng quan & chi tiết KH) ==================== */
-.card,
-.dashboard-card,
-.churn-overview,
-.customer-detail,
-.customer-info-box,
-.prediction-box,
-.chart-wrapper {
-  background-color: var(--card-bg);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--shadow);
-  padding: 24px;
-  margin-bottom: 24px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
-  overflow: hidden;
-}
-
-/* Hover hiệu ứng liên kết đẹp */
-.card:hover,
-.dashboard-card:hover,
-.churn-overview:hover,
-.customer-detail:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 35px 70px -15px rgb(0 0 0 / 0.55);
-  border-color: var(--accent);
-}
-
-/* Kẻ viền nổi bật cho phần dự đoán rời bỏ */
+.metric-card,
+.chart-box,
 .prediction-box {
-  border-color: var(--accent-border);
-  background: linear-gradient(135deg, var(--card-bg), rgba(59, 130, 246, 0.08));
+  background: #1a2338;
+  border: 1px solid #334155;
+  border-radius: 28px;
+  box-shadow: 0 30px 60px -15px rgb(0 0 0 / 0.55);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ==================== BACKGROUND + LIÊN KẾT TOÀN BỘ DASHBOARD ==================== */
-.dashboard-container {
-  background: transparent;
+.metric-card:hover,
+.chart-box:hover {
+  transform: translateY(-10px);
+  box-shadow: 0 40px 80px -20px rgb(34 211 238 / 0.3);
+  border-color: #22d3ee;
 }
 
-/* Thanh tìm kiếm KH cá nhân (đẹp, focus nổi bật) */
-.search-bar {
-  width: 100%;
-  max-width: 420px;
-  background: #1e2937;
-  border: 1px solid var(--border);
-  border-radius: 9999px;
-  padding: 14px 24px;
-  font-size: 16px;
-  color: var(--text-head);
-  transition: all 0.3s ease;
+.title-glow {
+  text-shadow: 0 0 30px rgba(34, 211, 238, 0.5);
 }
 
-.search-bar:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 4px var(--accent-soft);
+.prediction-box {
+  border-color: #f43f5e30;
+  background: linear-gradient(135deg, #1a2338, rgba(244, 63, 94, 0.08));
 }
 
-/* ==================== BIỂU ĐỒ & CHART (Recharts) ==================== */
-.recharts-responsive-container {
-  margin-top: 12px;
-  border-radius: 12px;
-}
-
-.chart-wrapper {
-  padding: 20px;
-}
-
-/* ==================== HIỆU ỨNG & SCROLLBAR (giữ nguyên nhưng phối màu đẹp hơn) ==================== */
-.animate-fadeIn {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-
+/* Scroll đẹp */
 ::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #0f172a;
-}
+  width: 6px;}
 
 ::-webkit-scrollbar-thumb {
   background: #475569;
   border-radius: 10px;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #64748b;
-}
-
-/* Input focus chung */
-input:focus {
-  outline: none;
-  box-shadow: 0 0 0 3px var(--accent-soft);
-  border-color: var(--accent);
-}
-
-/* Chữ rõ ràng + phối màu chuyên nghiệp */
-h1, h2, .section-title {
-  color: var(--text-head);
-}
-
-.metric-value {
-  color: var(--accent);
-  font-weight: 600;
-}
-
-/* Đảm bảo mọi phần (tổng quan KH, biểu đồ rời bỏ, KH cá nhân, dự đoán) đều có viền + bóng + liên kết màu */
-.customer-info-box,
-.prediction-box {
-  margin-top: 16px;
-}
