@@ -418,7 +418,6 @@ const ChartTooltip = ({ chartKey, children }) => {
           <span>💡 Click để xem giải thích</span>
         </div>
       </div>
-      {/* ✅ Chỉ render modal khi thật sự click */}
       {showModal && (
         <ChartExplanationModal 
           chartKey={chartKey} 
@@ -596,7 +595,7 @@ export default function App() {
     <div className="app">
 
       <div className="header">
-        <span className="logo">🏦 FINTECH ANALYTICS</span>
+        <span className="logo">CUSTOMER CHURN</span>
         <div className="header-status">
           <span className={`status-badge ${healthStatus.status === 'healthy' ? 'online' : 'offline'}`}>
             {healthStatus.status === 'healthy' ? '🟢 Online' : '🔴 Offline'}
@@ -730,7 +729,13 @@ export default function App() {
                     pointRadius: 2.2,
                     borderWidth: 2.5
                   }]
-                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+                }} options={{
+                  plugins:{legend:{display:false}}, 
+                  maintainAspectRatio:false,
+                  animation: false,
+                  hover: { animationDuration: 0 },
+                  responsive: true
+                }}/>
               </div>
             </ChartTooltip>
             <ChartTooltip chartKey="deposit">
@@ -746,7 +751,13 @@ export default function App() {
                     pointRadius: 2.2,
                     borderWidth: 2.5
                   }]
-                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+                }} options={{
+                  plugins:{legend:{display:false}}, 
+                  maintainAspectRatio:false,
+                  animation: false,
+                  hover: { animationDuration: 0 },
+                  responsive: true
+                }}/>
               </div>
             </ChartTooltip>
           </div>
@@ -765,7 +776,13 @@ export default function App() {
                     pointRadius: 2.2,
                     borderWidth: 2.5
                   }]
-                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+                }} options={{
+                  plugins:{legend:{display:false}}, 
+                  maintainAspectRatio:false,
+                  animation: false,
+                  hover: { animationDuration: 0 },
+                  responsive: true
+                }}/>
               </div>
             </ChartTooltip>
             <ChartTooltip chartKey="complaints">
@@ -779,7 +796,13 @@ export default function App() {
                     borderColor:"#5A68BA",
                     borderWidth: 1
                   }]
-                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+                }} options={{
+                  plugins:{legend:{display:false}}, 
+                  maintainAspectRatio:false,
+                  animation: false,
+                  hover: { animationDuration: 0 },
+                  responsive: true
+                }}/>
               </div>
             </ChartTooltip>
             <ChartTooltip chartKey="appUsage">
@@ -795,7 +818,13 @@ export default function App() {
                     pointRadius: 2.2,
                     borderWidth: 2.5
                   }]
-                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+                }} options={{
+                  plugins:{legend:{display:false}}, 
+                  maintainAspectRatio:false,
+                  animation: false,
+                  hover: { animationDuration: 0 },
+                  responsive: true
+                }}/>
               </div>
             </ChartTooltip>
           </div>
@@ -814,7 +843,13 @@ export default function App() {
                     pointRadius: 2.2,
                     borderWidth: 2.5
                   }]
-                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+                }} options={{
+                  plugins:{legend:{display:false}}, 
+                  maintainAspectRatio:false,
+                  animation: false,
+                  hover: { animationDuration: 0 },
+                  responsive: true
+                }}/>
               </div>
             </ChartTooltip>
           </div>

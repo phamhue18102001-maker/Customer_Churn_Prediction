@@ -869,6 +869,27 @@ header {
     font-size: 12px;
 }
 
+/* ===== 3D CHART EFFECT - TĨNH + ĐẸP NHƯ THẬT ===== */
+.chart-box-interactive {
+  perspective: 1300px;
+}
+
+.chart-box {
+  transform: rotateX(12deg) rotateY(15deg);
+  box-shadow: 
+    0 35px 70px -15px rgba(0, 0, 0, 0.65),
+    inset 0 0 30px rgba(0, 229, 255, 0.2),
+    0 0 0 1px rgba(0, 229, 255, 0.35);
+  transition: transform 0.35s ease, box-shadow 0.35s ease;
+}
+
+.chart-box-interactive:hover .chart-box {
+  transform: rotateX(6deg) rotateY(8deg);
+  box-shadow: 
+    0 45px 90px -10px rgba(0, 0, 0, 0.75),
+    inset 0 0 40px rgba(0, 229, 255, 0.4);
+}
+
 /* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
     .layout {
