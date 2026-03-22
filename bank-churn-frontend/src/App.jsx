@@ -418,7 +418,13 @@ const ChartTooltip = ({ chartKey, children }) => {
           <span>💡 Click để xem giải thích</span>
         </div>
       </div>
-      <ChartExplanationModal chartKey={chartKey} onClose={() => setShowModal(false)} />
+      {/* ✅ Chỉ render modal khi thật sự click */}
+      {showModal && (
+        <ChartExplanationModal 
+          chartKey={chartKey} 
+          onClose={() => setShowModal(false)} 
+        />
+      )}
     </>
   );
 };
