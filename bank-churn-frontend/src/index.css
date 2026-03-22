@@ -163,6 +163,7 @@ main {
     font-size: 72px;
     font-weight: bold;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin: 20px 0;
@@ -452,6 +453,7 @@ main {
     font-size: 64px;
     font-weight: 900;
     background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     margin-bottom: 20px;
