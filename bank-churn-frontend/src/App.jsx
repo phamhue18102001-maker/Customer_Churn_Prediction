@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Line, Bar, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -37,39 +37,122 @@ const defaultCustomerSample = {
   transaction: [12,13,13,14,14,16,16,16,17,17,18,19],
 };
 
-// ✅ NEW: Hàm phân tích dữ liệu
+// ✅ NEW: Chart Explanations & Solutions
+const chartExplanations = {
+  churn: {
+    title: "📈 Biểu đồ Churn Rate",
+    explanation: "Churn Rate là tỷ lệ khách hàng rời bỏ dịch vụ hàng tháng. Biểu đồ này cho thấy xu hướng churn tăng từ tháng 1 (12%) đến tháng 9 (15.8%), sau đó giảm xuống 12.5% ở tháng 12.",
+    keyPoints: [
+      "Peak: Tháng 9 với 15.8% - Dấu hiệu có sự cố lớn hoặc update không thành công",
+      "Recovery: Từ tháng 10-12 churn giảm - Các biện pháp giữ chân khách hàng có tác dụng",
+      "Current: 12.5% - Vẫn cao hơn baseline (9.2%), cần tiếp tục cải thiện"
+    ],
+    solutions: [
+      "🎯 Tìm hiểu nguyên nhân spike ở tháng 9 (product update, bug, hoặc cạnh tranh)",
+      "📞 Liên hệ khách hàng đã rời bỏ để hiểu feedback",
+      "💡 Duy trì các biện pháp giữ chân từ tháng 10 (giảm churn 3%)"
+    ]
+  },
+  deposit: {
+    title: "💰 Biểu đồ Tiền Gửi",
+    explanation: "Tiền gửi trung bình của khách hàng tăng từ 120 tỷ (T1) lên 190 tỷ (T12). Điều này là tích cực nhưng chúng ta cần kiểm tra xem có phải do khách hàng mới giàu hơn hay khách hàng cũ gửi thêm.",
+    keyPoints: [
+      "Trend: Tăng liên tục (+58% YoY) - Khách hàng có niềm tin gửi tiền",
+      "Peak: Tháng 12 với 190 tỷ - Có thể do bonus mùa lễ",
+      "Volatility: Ổn định - Dễ dự đoán và quản lý"
+    ],
+    solutions: [
+      "💎 Tạo sản phẩm tiết kiệm lãi suất cao để giữ tiền gửi",
+      "🎁 Khuyến mãi tháng 12-1 để duy trì mức gửi cao",
+      "📊 Phân tích: Tiền gửi tăng nhưng churn cũng tăng → Khách hàng giàu nhưng không loyal"
+    ]
+  },
+  products: {
+    title: "📦 Biểu đồ Sản Phẩm Sử Dụng",
+    explanation: "Tỷ lệ khách hàng sử dụng nhiều sản phẩm tăng từ 60% (T1) đến 108% (T12). Số liệu > 100% cho thấy khách hàng có thể sử dụng nhiều sản phẩm cùng một lúc hoặc có tính toán lại.",
+    keyPoints: [
+      "Trend: Tăng 80% - Khách hàng sử dụng nhiều sản phẩm hơn",
+      "Implication: Đa dạng hóa sản phẩm tạo sự gắn bó cao hơn",
+      "Note: Churn tăng dù sản phẩm tăng → Có vấn đề khác (UX, giá, dịch vụ)"
+    ],
+    solutions: [
+      "🔗 Tạo bundle deal khi khách hàng mua 2+ sản phẩm (giảm giá 10-15%)",
+      "📚 Hướng dẫn khách hàng cách sử dụng đầy đủ 3+ sản phẩm",
+      "🎯 Phân tích: Loại sản phẩm nào có churn cao nhất → Cải thiện"
+    ]
+  },
+  complaints: {
+    title: "🗣️ Biểu đồ Khiếu Nại",
+    explanation: "Số lượng khiếu nại biến động từ 18-35 cases/tháng. Spike ở tháng 8 (35 cases) trùng với spike churn ở tháng 9, cho thấy khiếu nại → churn.",
+    keyPoints: [
+      "Peak: Tháng 8 (35) → Tháng 9 churn spike (15.8%) - Mối liên hệ rõ",
+      "Recent: Tháng 11-12 giảm xuống 24-22 - Tình hình cải thiện",
+      "Correlation: Khiếu nại nhiều thì churn cao"
+    ],
+    solutions: [
+      "⚡ Thiết lập SLA: Giải quyết khiếu nại trong 24h",
+      "📞 Customer success team liên hệ khách hàng có khiếu nại",
+      "🎯 Root cause analysis: Tháng 8 xảy ra vấn đề gì (bug, update)?",
+      "💝 Đưa ra gift/voucher cho khách hàng bị ảnh hưởng"
+    ]
+  },
+  appUsage: {
+    title: "📱 Biểu đồ App Usage",
+    explanation: "Lượt sử dụng app tăng từ 490 (T1) lên 900 (T12). Đây là tín hiệu tích cực về engagement, nhưng churn vẫn cao cho thấy app dùng nhiều nhưng không giải quyết được nhu cầu khách hàng.",
+    keyPoints: [
+      "Trend: Tăng 84% - App ngày càng được sử dụng hơn",
+      "Paradox: App usage tăng nhưng churn cũng tăng → App tốt nhưng sản phẩm không thỏa mãn",
+      "Engagement: Tăng liên tục - UX hoặc feature mới thu hút người dùng"
+    ],
+    solutions: [
+      "🔍 A/B test: Tính năng nào người dùng dùng nhiều nhất",
+      "🎮 Gamification: Thêm rewards/points khi dùng app",
+      "🔔 Push notification: Gợi ý feature/promo dựa trên usage pattern",
+      "⭐ Rating prompts: Hỏi feedback khi người dùng có action tích cực"
+    ]
+  },
+  transaction: {
+    title: "💸 Biểu đồ Giao Dịch",
+    explanation: "Tần suất giao dịch tăng từ 150 (T1) lên 300 (T12). Điều này cho thấy khách hàng ngày càng sử dụng tính năng giao dịch nhiều hơn, là dấu hiệu tích cực.",
+    keyPoints: [
+      "Trend: Tăng 100% - Gấp đôi số giao dịch",
+      "Stability: Tăng liên tục & ổn định - Dễ dự báo",
+      "Positive: Tần suất giao dịch cao = khách hàng active"
+    ],
+    solutions: [
+      "💰 Cashback/rewards cho mỗi giao dịch (1% hoặc 0.5%)",
+      "🎯 Milestone rewards: Thưởng khi giao dịch đạt 100, 500, 1000 lần",
+      "📊 Analytics: Khách hàng giao dịch nhiều nhưng churn cao → Tìm reason",
+      "🔐 Security: Tăng cường bảo mật (2FA, encryption) để xây dựng tin tưởng"
+    ]
+  }
+};
+
 function analyzeData(data, isCustomer) {
   const churnData = data.churn;
   const depositData = data.deposit;
   const transactionData = data.transaction;
   const appUsageData = data.appUsage;
 
-  // Tính toán tháng này vs tháng trước
   const currentMonth = churnData[11];
   const prevMonth = churnData[10];
   const changePercent = ((currentMonth - prevMonth) / prevMonth * 100).toFixed(1);
   
-  // Tính trung bình 3 tháng cuối
   const last3Months = churnData.slice(-3);
   const avg3Months = (last3Months.reduce((a,b) => a+b, 0) / 3).toFixed(1);
   
-  // Tính trung bình 3 tháng đầu
   const first3Months = churnData.slice(0, 3);
   const avgFirst3 = (first3Months.reduce((a,b) => a+b, 0) / 3).toFixed(1);
   
-  // Tính xu hướng
   const maxChurn = Math.max(...churnData);
   const minChurn = Math.min(...churnData);
   const trend = currentMonth > prevMonth ? "↑ Tăng" : "↓ Giảm";
   
-  // Độ ổn định
   const variance = churnData.reduce((sum, val) => sum + Math.pow(val - avg3Months, 2), 0) / churnData.length;
   const stability = variance < 10 ? "Ổn định" : variance < 20 ? "Biến động trung bình" : "Biến động cao";
 
-  // Tính toán deposit
   const depositChange = ((depositData[11] - depositData[10]) / depositData[10] * 100).toFixed(1);
   
-  // Tính toán engagement
   const appEngagement = appUsageData.slice(-3).reduce((a,b) => a+b, 0) / 3;
   const appEngagementTrend = appUsageData[11] > appUsageData[0] ? "tăng" : "giảm";
 
@@ -90,11 +173,9 @@ function analyzeData(data, isCustomer) {
   };
 }
 
-// ✅ NEW: Hàm tạo lời giải thích
 function generateInsights(analysis, isCustomer) {
   const insights = [];
 
-  // Insight 1: Churn so với tháng trước
   if (analysis.changePercent > 0) {
     insights.push({
       title: "⚠️ Churn tăng so với tháng trước",
@@ -109,7 +190,6 @@ function generateInsights(analysis, isCustomer) {
     });
   }
 
-  // Insight 2: So sánh 3 tháng
   const comparison = analysis.last3Months - analysis.first3Months;
   if (comparison > 2) {
     insights.push({
@@ -131,21 +211,18 @@ function generateInsights(analysis, isCustomer) {
     });
   }
 
-  // Insight 3: Volatility
   insights.push({
     title: `📊 Độ ổn định: ${analysis.stability}`,
     detail: `Churn dao động từ ${analysis.minChurn}% đến ${analysis.maxChurn}%. ${analysis.stability === 'Ổn định' ? 'Dữ liệu khá ổn định, dễ dự đoán.' : analysis.stability === 'Biến động trung bình' ? 'Có sự biến động nhất định, cần chú ý.' : 'Biến động rất cao, khó kiểm soát.'}`,
     severity: analysis.stability === 'Ổn định' ? 'low' : analysis.stability === 'Biến động trung bình' ? 'medium' : 'high'
   });
 
-  // Insight 4: YoY Growth
   insights.push({
     title: "📅 Tăng trưởng so với năm ngoái",
     detail: `Churn hiện tại (${analysis.currentMonth}%) so với TB 3T đầu năm (${analysis.first3Months}%): ${analysis.yoyChange > 0 ? 'Tăng' : 'Giảm'} ${Math.abs(analysis.yoyChange)}%.`,
     severity: analysis.yoyChange > 0 ? 'high' : 'low'
   });
 
-  // Insight 5: Deposit
   if (analysis.depositChange > 0) {
     insights.push({
       title: "💰 Tiền gửi tăng",
@@ -160,17 +237,15 @@ function generateInsights(analysis, isCustomer) {
     });
   }
 
-  // Insight 6: Engagement
   insights.push({
     title: `📱 Mức độ sử dụng app ${analysis.appEngagementTrend}`,
-    detail: `Trung bình 3 tháng cuối: ${analysis.appEngagement} lần/tháng. ${analysis.appEngagementTrend === 'tăng' ? 'Người dùng tích cực sử dụng ứng dụng.' : 'Người dùng ít sử dụng ứng dụng, c��n cải thiện UX.'}`,
+    detail: `Trung bình 3 tháng cuối: ${analysis.appEngagement} lần/tháng. ${analysis.appEngagementTrend === 'tăng' ? 'Người dùng tích cực sử dụng ứng dụng.' : 'Người dùng ít sử dụng ứng dụng, cần cải thiện UX.'}`,
     severity: analysis.appEngagementTrend === 'tăng' ? 'low' : 'medium'
   });
 
   return insights;
 }
 
-// ✅ NEW: Hàm tạo giải pháp
 function generateSolutions(analysis, isCustomer) {
   const solutions = [];
 
@@ -249,7 +324,6 @@ function generateSolutions(analysis, isCustomer) {
     });
   }
 
-  // Thêm giải pháp chung
   solutions.push({
     icon: "👥",
     title: "Tăng cường tương tác khách hàng",
@@ -295,7 +369,60 @@ const Card = ({icon, label, value}) => (
   </div>
 );
 
-// ✅ NEW: Insight Card Component
+// ✅ NEW: Chart Explanation Modal
+const ChartExplanationModal = ({ chartKey, onClose }) => {
+  if (!chartKey || !chartExplanations[chartKey]) return null;
+  
+  const info = chartExplanations[chartKey];
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <button className="modal-close" onClick={onClose}>✕</button>
+        
+        <h3>{info.title}</h3>
+        <p className="explanation-text">{info.explanation}</p>
+        
+        <h4 style={{marginTop: '20px', color: 'var(--primary-color)'}}>🔑 Các điểm chính:</h4>
+        <ul className="key-points">
+          {info.keyPoints.map((point, idx) => (
+            <li key={idx}>{point}</li>
+          ))}
+        </ul>
+
+        <h4 style={{marginTop: '20px', color: 'var(--primary-color)'}}>💡 Giải pháp đề xuất:</h4>
+        <ul className="solutions-list">
+          {info.solutions.map((solution, idx) => (
+            <li key={idx}>{solution}</li>
+          ))}
+        </ul>
+
+        <button className="modal-btn-close" onClick={onClose}>Đóng</button>
+      </div>
+    </div>
+  );
+};
+
+// ✅ NEW: Tooltip Card Component
+const ChartTooltip = ({ chartKey, children }) => {
+  const [showModal, setShowModal] = useState(false);
+
+  return (
+    <>
+      <div 
+        className="chart-box-interactive"
+        onClick={() => setShowModal(true)}
+      >
+        {children}
+        <div className="chart-tooltip-hint">
+          <span>💡 Click để xem giải thích</span>
+        </div>
+      </div>
+      <ChartExplanationModal chartKey={chartKey} onClose={() => setShowModal(false)} />
+    </>
+  );
+};
+
 const InsightCard = ({ insight }) => (
   <div className={`insight-card insight-${insight.severity}`}>
     <h4>{insight.title}</h4>
@@ -303,7 +430,6 @@ const InsightCard = ({ insight }) => (
   </div>
 );
 
-// ✅ NEW: Solution Card Component
 const SolutionCard = ({ solution }) => (
   <div className={`solution-card solution-${solution.priority.toLowerCase()}`}>
     <div className="solution-header">
@@ -332,6 +458,7 @@ export default function App() {
   const [error, setError] = useState(null);
   const [healthStatus, setHealthStatus] = useState({ status: "checking" });
   const [searchInput, setSearchInput] = useState("");
+  const [visibleCharts, setVisibleCharts] = useState(new Set());
 
   useEffect(() => {
     const checkHealth = async () => {
@@ -367,6 +494,26 @@ export default function App() {
       }
     };
     fetchHistory();
+  }, []);
+
+  // ✅ NEW: Intersection Observer để detect khi chart vào viewport
+  useEffect(() => {
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const chartId = entry.target.getAttribute('data-chart-id');
+          if (chartId) {
+            setVisibleCharts(prev => new Set([...prev, chartId]));
+          }
+        }
+      });
+    }, { threshold: 0.5 });
+
+    document.querySelectorAll('[data-chart-id]').forEach(el => {
+      observer.observe(el);
+    });
+
+    return () => observer.disconnect();
   }, []);
 
   const handlePredictCustomer = async (e) => {
@@ -442,7 +589,6 @@ export default function App() {
   return (
     <div className="app">
 
-      {/* HEADER */}
       <div className="header">
         <span className="logo">🏦 FINTECH ANALYTICS</span>
         <div className="header-status">
@@ -459,7 +605,6 @@ export default function App() {
         </span>
       </div>
       
-      {/* ERROR MESSAGE */}
       {error && (
         <div className="error-banner">
           <span>❌ {error}</span>
@@ -467,11 +612,9 @@ export default function App() {
         </div>
       )}
 
-      {/* LOADING */}
       {loading && <div className="loading-overlay">Đang tải...</div>}
       
       <div className="layout">
-        {/* SIDEBAR */}
         <div className="sidebar">
           <h3>🔍 Tìm kiếm khách hàng</h3>
           <form onSubmit={handlePredictCustomer}>
@@ -522,7 +665,6 @@ export default function App() {
               : "✅ Rời bỏ giảm/ổn định."}
           </div>
 
-          {/* Prediction Result */}
           {viewCustomer && data.riskLevel && (
             <div className="side-divider">
               <h3>🎯 Kết quả dự đoán</h3>
@@ -534,7 +676,6 @@ export default function App() {
             </div>
           )}
 
-          {/* History Count */}
           <div className="side-divider">
             <h3>📊 Tổng quan</h3>
             <p style={{color: 'var(--text-secondary)', fontSize: '13px'}}>
@@ -543,7 +684,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* MAIN */}
         <div className="main">
           <h1 className="main-title">
             {viewCustomer ? `PHÂN TÍCH KHÁCH HÀNG: ${data.name}` : "PHÂN TÍCH NGÂN HÀNG"}
@@ -561,7 +701,6 @@ export default function App() {
             )}
           </div>
 
-          {/* ✅ NEW: INSIGHTS SECTION */}
           <div className="section-divider">
             <h2>📊 Phân tích chi tiết</h2>
             <div className="insights-grid">
@@ -571,101 +710,109 @@ export default function App() {
             </div>
           </div>
 
-          {/* Chart line: Dòng 1 (churn, deposit) */}
           <div className="chart-row">
-            <div className="chart-box">
-              <div className="chart-title">Churn (%)</div>
-              <Line height={120} data={{
-                labels: months,
-                datasets: [{ 
-                  data: data.churn, 
-                  borderColor:"#EA5022", 
-                  backgroundColor:"rgba(234, 80, 34, 0.1)", 
-                  tension:.3, 
-                  pointRadius: 2.2,
-                  borderWidth: 2.5
-                }]
-              }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
-            </div>
-            <div className="chart-box">
-              <div className="chart-title">Tiền gửi</div>
-              <Line height={120} data={{
-                labels: months,
-                datasets: [{ 
-                  data: data.deposit, 
-                  borderColor:"#66C2CC", 
-                  backgroundColor:"rgba(102, 194, 204, 0.1)", 
-                  tension:.3, 
-                  pointRadius: 2.2,
-                  borderWidth: 2.5
-                }]
-              }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
-            </div>
+            <ChartTooltip chartKey="churn">
+              <div className="chart-box" data-chart-id="churn">
+                <div className="chart-title">Churn (%)</div>
+                <Line height={120} data={{
+                  labels: months,
+                  datasets: [{ 
+                    data: data.churn, 
+                    borderColor:"#EA5022", 
+                    backgroundColor:"rgba(234, 80, 34, 0.1)", 
+                    tension:.3, 
+                    pointRadius: 2.2,
+                    borderWidth: 2.5
+                  }]
+                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+              </div>
+            </ChartTooltip>
+            <ChartTooltip chartKey="deposit">
+              <div className="chart-box" data-chart-id="deposit">
+                <div className="chart-title">Tiền gửi</div>
+                <Line height={120} data={{
+                  labels: months,
+                  datasets: [{ 
+                    data: data.deposit, 
+                    borderColor:"#66C2CC", 
+                    backgroundColor:"rgba(102, 194, 204, 0.1)", 
+                    tension:.3, 
+                    pointRadius: 2.2,
+                    borderWidth: 2.5
+                  }]
+                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+              </div>
+            </ChartTooltip>
           </div>
 
-          {/* Chart line/bar: Dòng 2 (Product Usage, Complaints, App Usage) */}
           <div className="chart-row">
-            <div className="chart-box">
-              <div className="chart-title">SP sử dụng (%)</div>
-              <Line height={90} data={{
-                labels: months,
-                datasets: [{ 
-                  data: data.productUsage, 
-                  borderColor:"#289F7A", 
-                  backgroundColor:"rgba(40, 159, 122, 0.1)", 
-                  tension:.3, 
-                  pointRadius: 2.2,
-                  borderWidth: 2.5
-                }]
-              }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
-            </div>
-            <div className="chart-box">
-              <div className="chart-title">Khiếu nại</div>
-              <Bar height={90} data={{
-                labels: months,
-                datasets: [{ 
-                  data: data.complaints, 
-                  backgroundColor:"#5A68BA",
-                  borderColor:"#5A68BA",
-                  borderWidth: 1
-                }]
-              }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
-            </div>
-            <div className="chart-box">
-              <div className="chart-title">App Usage</div>
-              <Line height={90} data={{
-                labels: months,
-                datasets: [{ 
-                  data: data.appUsage, 
-                  borderColor:"#E79EA1", 
-                  backgroundColor:"rgba(231, 158, 161, 0.1)", 
-                  tension:.3, 
-                  pointRadius: 2.2,
-                  borderWidth: 2.5
-                }]
-              }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
-            </div>
+            <ChartTooltip chartKey="products">
+              <div className="chart-box" data-chart-id="products">
+                <div className="chart-title">SP sử dụng (%)</div>
+                <Line height={90} data={{
+                  labels: months,
+                  datasets: [{ 
+                    data: data.productUsage, 
+                    borderColor:"#289F7A", 
+                    backgroundColor:"rgba(40, 159, 122, 0.1)", 
+                    tension:.3, 
+                    pointRadius: 2.2,
+                    borderWidth: 2.5
+                  }]
+                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+              </div>
+            </ChartTooltip>
+            <ChartTooltip chartKey="complaints">
+              <div className="chart-box" data-chart-id="complaints">
+                <div className="chart-title">Khiếu nại</div>
+                <Bar height={90} data={{
+                  labels: months,
+                  datasets: [{ 
+                    data: data.complaints, 
+                    backgroundColor:"#5A68BA",
+                    borderColor:"#5A68BA",
+                    borderWidth: 1
+                  }]
+                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+              </div>
+            </ChartTooltip>
+            <ChartTooltip chartKey="appUsage">
+              <div className="chart-box" data-chart-id="appUsage">
+                <div className="chart-title">App Usage</div>
+                <Line height={90} data={{
+                  labels: months,
+                  datasets: [{ 
+                    data: data.appUsage, 
+                    borderColor:"#E79EA1", 
+                    backgroundColor:"rgba(231, 158, 161, 0.1)", 
+                    tension:.3, 
+                    pointRadius: 2.2,
+                    borderWidth: 2.5
+                  }]
+                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+              </div>
+            </ChartTooltip>
           </div>
 
-          {/* Chart line: Dòng 3 (transaction) */}
           <div className="chart-row">
-            <div className="chart-box">
-              <div className="chart-title">Tần suất giao dịch</div>
-              <Line height={102} data={{
-                labels: months,
-                datasets: [{ 
-                  data: data.transaction, 
-                  borderColor:"#1C5A6F", 
-                  backgroundColor:"rgba(28, 90, 111, 0.1)", 
-                  tension:.3, 
-                  pointRadius: 2.2,
-                  borderWidth: 2.5
-                }]
-              }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
-            </div>
+            <ChartTooltip chartKey="transaction">
+              <div className="chart-box" data-chart-id="transaction">
+                <div className="chart-title">Tần suất giao dịch</div>
+                <Line height={102} data={{
+                  labels: months,
+                  datasets: [{ 
+                    data: data.transaction, 
+                    borderColor:"#1C5A6F", 
+                    backgroundColor:"rgba(28, 90, 111, 0.1)", 
+                    tension:.3, 
+                    pointRadius: 2.2,
+                    borderWidth: 2.5
+                  }]
+                }} options={{ plugins:{legend:{display:false}}, maintainAspectRatio:false }}/>
+              </div>
+            </ChartTooltip>
           </div>
 
-          {/* ✅ NEW: SOLUTIONS SECTION */}
           <div className="section-divider">
             <h2>💡 Giải pháp & Khuyến nghị</h2>
             <div className="solutions-grid">
@@ -675,7 +822,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* API Response Info */}
           <div className="api-info">
             <h4>📡 API Connections</h4>
             <p>Status: <strong>{healthStatus.status === 'healthy' ? '✅ Healthy' : '❌ ' + (healthStatus.status || 'Unknown')}</strong></p>
