@@ -610,7 +610,7 @@ export default function App() {
       {/* ===== FOOTER ===== */}
       <footer className="footer">
         <p>Customer Analytics Dashboard </p>
-        <p style={{fontSize: '12px', marginTop: '10px'}}>© 2026 PraRoz Analytics. Bảo lưu toàn bộ quyền.</p>
+        <p style={{fontSize: '12px', marginTop: '10px'}}>© 2026 Customer Analytics. Bảo lưu toàn bộ quyền.</p>
       </footer>
     </div>
   );
