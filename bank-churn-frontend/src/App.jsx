@@ -14,6 +14,7 @@ ChartJS.register(
 );
 
 const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
+
 const months = ['T1','T2','T3','T4','T5','T6','T7','T8','T9','T10','T11','T12'];
 
 const defaultBankData = {
@@ -38,87 +39,87 @@ const defaultCustomerSample = {
 
 const chartExplanations = {
   churn: {
-    title: "📈 Biểu đồ Churn Rate",
-    explanation: "Tỷ lệ khách hàng rời bỏ dịch vụ hàng tháng. Biểu đồ cho thấy xu hướng churn tăng từ tháng 1 đến tháng 9, sau đó giảm xuống.",
+    title: "Tỷ Lệ Khách Hàng Rời Bỏ",
+    explanation: "Tỷ lệ khách hàng rời bỏ dịch vụ hàng tháng. Biểu đồ cho thấy xu hướng churn tăng từ tháng 1 đến tháng 9, sau đó giảm xuống. Đây là chỉ số quan trọng để đánh giá sự hài lòng của khách hàng.",
     keyPoints: [
-      "🔴 Peak: Tháng 9 với 25% - Dấu hiệu có sự cố lớn hoặc update không thành công",
-      "🟢 Recovery: Từ tháng 10-12 churn giảm - Các biện pháp giữ chân khách hàng có tác dụng",
-      "⚡ Current: 19% - Vẫn cao hơn baseline, cần tiếp tục cải thiện"
+      "Đỉnh cao: Tháng 9 với 25% - Dấu hiệu có sự cố lớn hoặc cập nhật không thành công",
+      "Phục hồi: Từ tháng 10-12 churn giảm - Các biện pháp giữ chân khách hàng có tác dụng",
+      "Hiện tại: 19% - Vẫn cao hơn mục tiêu, cần tiếp tục cải thiện"
     ],
     solutions: [
-      "🎯 Tìm hiểu nguyên nhân spike ở tháng 9",
-      "📞 Liên hệ khách hàng đã rời bỏ để hiểu feedback",
-      "💡 Duy trì các biện pháp giữ chân từ tháng 10"
+      "Tìm hiểu nguyên nhân spike ở tháng 9 - Khảo sát khách hàng rời bỏ",
+      "Liên hệ khách hàng đã churn để nhận phản hồi và cải thiện dịch vụ",
+      "Duy trì các biện pháp giữ chân khách hàng từ tháng 10"
     ]
   },
   deposit: {
-    title: "💰 Biểu đồ Tiền Gửi",
-    explanation: "Tiền gửi trung bình của khách hàng tăng từ 120 tỷ (T1) lên 190 tỷ (T12). Khách hàng có niềm tin gửi tiền.",
+    title: "Tổng Tiền Gửi Khách Hàng",
+    explanation: "Tiền gửi trung bình của khách hàng tăng từ 120 tỷ (T1) lên 190 tỷ (T12). Điều này cho thấy khách hàng có niềm tin và gửi nhiều tiền hơn. Tuy nhiên, churn lại tăng nên cần kết hợp các chiến lược.",
     keyPoints: [
-      "📈 Trend: Tăng liên tục (+58% YoY) - Khách hàng có niềm tin gửi tiền",
-      "🎄 Peak: Tháng 12 với 190 tỷ - Có thể do bonus mùa lễ",
-      "📊 Volatility: Ổn định - Dễ dự đoán và quản lý"
+      "Xu hướng: Tăng liên tục (+58% YoY) - Khách hàng tin tưởng gửi tiền",
+      "Đỉnh cao: Tháng 12 với 190 tỷ - Có thể do tiền thưởng mùa lễ",
+      "Ổn định: Không biến động lớn - Dễ dự đoán và quản lý"
     ],
     solutions: [
-      "💎 Tạo sản phẩm tiết kiệm lãi suất cao",
-      "🎁 Khuyến mãi tháng 12-1 để duy trì mức gửi cao",
-      "⚠️ Lưu ý: Tiền gửi tăng nhưng churn cũng tăng"
+      "Tạo sản phẩm tiết kiệm với lãi suất cao để kích thích gửi tiền",
+      "Chương trình khuyến mãi mùa lễ (tháng 12-1) để duy trì mức gửi cao",
+      "Cảnh báo: Tiền gửi tăng nhưng churn cũng tăng - Cần tìm giải pháp"
     ]
   },
   products: {
-    title: "📦 Biểu đồ Sản Phẩm Sử Dụng",
-    explanation: "Tỷ lệ khách hàng sử dụng nhiều sản phẩm tăng từ 60% lên 108%. Khách hàng ngày càng sử dụng đa dạng sản phẩm.",
+    title: "Tỷ Lệ Sử Dụng Sản Phẩm",
+    explanation: "Tỷ lệ khách hàng sử dụng nhiều sản phẩm tăng từ 60% lên 108%. Số liệu trên 100% cho thấy khách hàng sử dụng đa dạng sản phẩm. Đây là tín hiệu tích cực nhưng churn vẫn cao.",
     keyPoints: [
-      "🔗 Trend: Tăng 80% - Khách hàng sử dụng nhiều sản phẩm hơn",
-      "🎯 Implication: Đa dạng hóa sản phẩm tạo sự gắn bó cao hơn",
-      "⚠️ Paradox: Sản phẩm tăng nhưng churn cũng tăng"
+      "Xu hướng: Tăng 80% - Khách hàng sử dụng đa dạng sản phẩm hơn",
+      "Tác động: Đa dạng hóa sản phẩm tạo sự gắn bó cao hơn với ngân hàng",
+      "Mâu thuẫn: Sản phẩm tăng nhưng churn cũng tăng - Có vấn đề khác"
     ],
     solutions: [
-      "🔗 Tạo bundle deal khi khách hàng mua 2+ sản phẩm",
-      "📚 Hướng dẫn khách hàng cách sử dụng đầy đủ",
-      "🎯 Phân tích: Loại sản phẩm nào có churn cao nhất"
+      "Tạo gói combo khi khách hàng mua 2+ sản phẩm (giảm giá 10-15%)",
+      "Hướng dẫn khách hàng cách sử dụng đầy đủ các sản phẩm",
+      "Phân tích: Sản phẩm nào có churn cao nhất để cải thiện"
     ]
   },
   complaints: {
-    title: "🗣️ Biểu đồ Khiếu Nại",
-    explanation: "Số lượng khiếu nại biến động từ 18-35 cases/tháng. Spike ở tháng 8 trùng với spike churn ở tháng 9.",
+    title: "Số Lượng Khiếu Nại",
+    explanation: "Số lượng khiếu nại biến động từ 18-35 cases/tháng. Spike ở tháng 8 (35 cases) trùng với spike churn ở tháng 9. Điều này cho thấy khiếu nại → r��i bỏ.",
     keyPoints: [
-      "🔴 Peak: Tháng 8 (35 cases) → Tháng 9 churn spike (25%)",
-      "✅ Recent: Tháng 11-12 giảm xuống 22-24 - Tình hình cải thiện",
-      "🔗 Correlation: Khiếu nại nhiều → churn cao"
+      "Đỉnh cao: Tháng 8 (35 cases) → Tháng 9 churn spike (25%) - Liên hệ rõ",
+      "Gần đây: Tháng 11-12 giảm xuống 22-24 - Tình hình đang cải thiện",
+      "Tương quan: Khiếu nại nhiều → churn cao - Cần ưu tiên xử lý"
     ],
     solutions: [
-      "⚡ Thiết lập SLA: Giải quyết khiếu nại trong 24h",
-      "📞 Customer success team liên hệ khách hàng có khiếu nại",
-      "🎯 Root cause analysis: Tháng 8 xảy ra vấn đề gì"
+      "Thiết lập SLA: Giải quyết khiếu nại trong 24h",
+      "Team customer success liên hệ khách hàng có khiếu nại",
+      "Phân tích nguyên nhân: Tháng 8 xảy ra sự cố gì?"
     ]
   },
   appUsage: {
-    title: "📱 Biểu đồ App Usage",
-    explanation: "Lượt sử dụng app tăng từ 490 lên 900. Nhưng churn vẫn cao - app tốt nhưng sản phẩm không thỏa mãn.",
+    title: "Lượt Sử Dụng Ứng Dụng",
+    explanation: "Lượt sử dụng app tăng từ 490 lên 900 (+84%). Nhưng churn vẫn cao - ứng dụng tốt nhưng sản phẩm/dịch vụ không thỏa mãn nhu cầu khách hàng.",
     keyPoints: [
-      "📈 Trend: Tăng 84% - App ngày càng được sử dụng",
-      "⚡ Paradox: App usage tăng nhưng churn cũng tăng",
-      "💡 Insight: UX tốt nhưng sản phẩm/dịch vụ còn vấn đề"
+      "Xu hướng: Tăng 84% - Ứng dụng ngày càng được sử dụng",
+      "Mâu thuẫn: App usage tăng nhưng churn cũng tăng - Lạ thường",
+      "Sâu sắc: UX tốt nhưng sản phẩm/dịch vụ còn vấn đề"
     ],
     solutions: [
-      "🔍 A/B test: Tính năng nào người dùng dùng nhiều nhất",
-      "🎮 Gamification: Thêm rewards/points khi dùng app",
-      "🔔 Push notification: Gợi ý dựa trên usage pattern"
+      "A/B test: Tính năng nào được sử dụng nhiều nhất?",
+      "Gamification: Thêm phần thưởng/điểm khi sử dụng app",
+      "Push notification: Gợi ý tính năng dựa trên hành vi người dùng"
     ]
   },
   transaction: {
-    title: "💸 Biểu đồ Giao Dịch",
-    explanation: "Tần suất giao dịch tăng từ 150 lên 300 (+100%). Khách hàng ngày càng sử dụng tính năng giao dịch.",
+    title: "Tần Suất Giao Dịch",
+    explanation: "Tần suất giao dịch tăng từ 150 lên 300 (+100%). Khách hàng ngày càng sử dụng tính năng giao dịch nhiều hơn. Đây là tín hiệu tích cực về engagement.",
     keyPoints: [
-      "📊 Trend: Tăng 100% - Gấp đôi số giao dịch",
-      "✅ Stability: Tăng liên tục & ổn định - Dễ dự báo",
-      "⚡ Positive: Tần suất giao dịch cao = khách hàng active"
+      "Xu hướng: Tăng 100% - Gấp đôi số lượng giao dịch",
+      "Ổn định: Tăng liên tục & không biến động - Dễ dự báo",
+      "Tích cực: Tần suất giao dịch cao = khách hàng hoạt động"
     ],
     solutions: [
-      "💰 Cashback/rewards cho mỗi giao dịch",
-      "🎯 Milestone rewards: Thưởng khi đạt 100, 500, 1000 lần",
-      "🔐 Security: Tăng cường bảo mật để xây dựng tin tưởng"
+      "Cashback/phần thưởng cho mỗi giao dịch (0.5-1%)",
+      "Milestone rewards: Thưởng khi đạt 100, 500, 1000 giao dịch",
+      "Bảo mật: Tăng cường bảo mật (2FA, mã hóa) để xây dựng tin tưởng"
     ]
   }
 };
@@ -195,7 +196,6 @@ const ChartSection = ({ chartKey, data, title, color, type = "line" }) => {
   return (
     <div ref={ref} className={`chart-section ${isVisible ? 'visible' : ''}`}>
       <div className="section-container">
-        {/* Left: Chart */}
         <div className="chart-wrapper">
           <div className="chart-box">
             <h2 className="chart-main-title">{info.title}</h2>
@@ -209,20 +209,19 @@ const ChartSection = ({ chartKey, data, title, color, type = "line" }) => {
           </div>
         </div>
 
-        {/* Right: Explanation */}
         <div className="explanation-wrapper">
           <div className="explanation-box">
-            <h3>💡 Giải thích</h3>
+            <h3>Giải Thích</h3>
             <p className="explanation-text">{info.explanation}</p>
 
-            <h4 className="section-subtitle">🔑 Các điểm chính:</h4>
+            <h4 className="section-subtitle">Key Points:</h4>
             <ul className="key-points-list">
               {info.keyPoints.map((point, idx) => (
                 <li key={idx}>{point}</li>
               ))}
             </ul>
 
-            <h4 className="section-subtitle">✨ Giải pháp đề xuất:</h4>
+            <h4 className="section-subtitle">Proposed Solution:</h4>
             <ul className="solutions-list">
               {info.solutions.map((solution, idx) => (
                 <li key={idx}>{solution}</li>
@@ -238,44 +237,44 @@ const ChartSection = ({ chartKey, data, title, color, type = "line" }) => {
 const KPIDisplay = ({ data }) => (
   <div className="kpi-display">
     <div className="kpi-item">
-      <span className="kpi-icon">👥</span>
+      <span className="kpi-icon"></span>
       <div>
-        <p>Tổng khách hàng</p>
+        <p>Tổng Khách Hàng</p>
         <strong>{data.customers.toLocaleString()}</strong>
       </div>
     </div>
     <div className="kpi-item">
-      <span className="kpi-icon">⚠️</span>
+      <span className="kpi-icon"></span>
       <div>
-        <p>Churn tháng này</p>
-        <strong style={{color: '#EA5022'}}>{data.churn[11]}%</strong>
+        <p>Monthly Turnover Rate</p>
+        <strong style={{color: '#ff7200'}}>{data.churn[11]}%</strong>
       </div>
     </div>
     <div className="kpi-item">
-      <span className="kpi-icon">💰</span>
+      <span className="kpi-icon"></span>
       <div>
-        <p>Tiền gửi cuối kỳ</p>
-        <strong>{data.deposit[11]} tỷ</strong>
+        <p>Ending Deposit</p>
+        <strong>{data.deposit[11]} Tỷ</strong>
       </div>
     </div>
     <div className="kpi-item">
-      <span className="kpi-icon">📦</span>
+      <span className="kpi-icon"></span>
       <div>
-        <p>SP sử dụng</p>
+        <p>Products Used</p>
         <strong>{data.productUsage[11]}%</strong>
       </div>
     </div>
     <div className="kpi-item">
-      <span className="kpi-icon">📱</span>
+      <span className="kpi-icon"></span>
       <div>
         <p>App Usage</p>
         <strong>{data.appUsage[11]}</strong>
       </div>
     </div>
     <div className="kpi-item">
-      <span className="kpi-icon">💸</span>
+      <span className="kpi-icon"></span>
       <div>
-        <p>Giao dịch</p>
+        <p>Number of Transactions</p>
         <strong>{data.transaction[11]}</strong>
       </div>
     </div>
@@ -290,7 +289,26 @@ export default function App() {
   const [error, setError] = useState(null);
   const [healthStatus, setHealthStatus] = useState({ status: "checking" });
   const [searchInput, setSearchInput] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
+  // Load Ionicons script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/ionicons@5.4.0/dist/ionicons.js';
+    script.async = true;
+    script.noModule = true;
+    document.body.appendChild(script);
+
+    return () => {
+      // Cleanup: remove script if needed
+      if (script.parentNode) {
+        script.parentNode.removeChild(script);
+      }
+    };
+  }, []);
+  
   useEffect(() => {
     const checkHealth = async () => {
       try {
@@ -309,7 +327,7 @@ export default function App() {
   const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchInput.trim()) {
-      setError("Nhập tên hoặc ID khách hàng");
+      setError("Please enter the customer's name or ID.");
       return;
     }
 
@@ -333,9 +351,32 @@ export default function App() {
         setViewCustomer(true);
       }
     } catch (err) {
-      setError("Lỗi tìm kiếm: " + err.message);
+      setError("Search error: " + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    if (!loginEmail || !loginPassword) {
+      setError("Please enter your email and password.");
+      return;
+    }
+    setError("Demo mode - Login not available");
+    setTimeout(() => setError(null), 3000);
+  };
+
+  const handleNavClick = (section) => {
+    switch(section) {
+      case 'service':
+        document.querySelector('.kpi-section')?.scrollIntoView({ behavior: 'smooth' });
+        break;
+      case 'design':
+        document.querySelector('.chart-section')?.scrollIntoView({ behavior: 'smooth' });
+        break;
+      default:
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -343,30 +384,35 @@ export default function App() {
   const analysis = analyzeData(data);
 
   return (
-    <div className="app">
-      {/* Header */}
-      <header className="header">
-        <div className="header-left">
-          <h1 className="logo">💳 CUSTOMER CHURN ANALYTICS</h1>
-          <span className={`status-badge ${healthStatus.status === 'healthy' ? 'online' : 'offline'}`}>
-            {healthStatus.status === 'healthy' ? '🟢 Online' : '🔴 Offline'}
-          </span>
+    <div className="main">
+      {/* ===== NAVBAR ===== */}
+      <nav className="navbar">
+        <div className="icon">
+          <h2 className="logo"> CUSTOMER DATA ANALYSIS</h2>
         </div>
-        <div className="header-controls">
-          <button 
-            className={`mode-btn ${!viewCustomer ? 'active' : ''}`}
-            onClick={() => setViewCustomer(false)}
-          >
-            🏦 Ngân hàng
-          </button>
-          <button 
-            className={`mode-btn ${viewCustomer ? 'active' : ''}`}
-            onClick={() => setViewCustomer(true)}
-          >
-            👤 Khách hàng
-          </button>
+
+        <div className="menu">
+          <ul>
+            <li><a onClick={() => handleNavClick('home')}>HOME</a></li>
+            <li><a onClick={() => handleNavClick('about')}>ABOUT</a></li>
+            <li><a onClick={() => handleNavClick('service')}>SERVICE</a></li>
+            <li><a onClick={() => handleNavClick('design')}>ANALYSIS</a></li>
+            <li><a onClick={() => handleNavClick('contact')}>CONTACT</a></li>
+          </ul>
         </div>
-      </header>
+
+        <div className="search">
+          <input 
+            className="srch" 
+            type="search" 
+            placeholder="Search customers..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button className="btn" onClick={() => setSearchInput(searchQuery)}>Search</button>
+        </div>
+      </nav>
+      
 
       {error && (
         <div className="error-banner">
@@ -375,127 +421,196 @@ export default function App() {
         </div>
       )}
 
-      {/* Search Section */}
-      <section className="search-section">
+      {/* ===== HERO SECTION (CONTENT) ===== */}
+      <section className="content">
+        <div className="hero-text">
+          <h1>Churn Analysis <br/><span>Customer</span> <br/>Specialist</h1>
+
+          <p className="par">
+            Explore detailed data about customer churn rates, 
+            predict churn trends, and receive specific solutions 
+            to retain customers. A comprehensive analysis tool for 
+            your business strategy.
+          </p>
+
+          <button className="cn" onClick={() => document.querySelector('.kpi-section')?.scrollIntoView({ behavior: 'smooth' })}>
+            DISCOVER NOW
+          </button>
+        </div>
+
+        {/* ===== LOGIN FORM ===== */}
+        <div className="form">
+          <h2>Log in here</h2>
+          <form onSubmit={handleLogin}>
+            <input 
+              type="email" 
+              placeholder="Enter Your Email"
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
+            />
+            <input 
+              type="password" 
+              placeholder="Enter Your Password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+            />
+            <button className="btn" type="submit">Log in</button>
+          </form>
+
+          <p className="link">
+            No account yet.<br/>
+            <a href="#">Register here</a>
+          </p>
+
+          <p className="liw">Log in with</p>
+
+          <div className="icons">
+            <a href="#" title="Facebook"><ion-icon name="logo-facebook"></ion-icon></a>
+            <a href="#" title="Instagram"><ion-icon name="logo-instagram"></ion-icon></a>
+            <a href="#" title="Twitter"><ion-icon name="logo-twitter"></ion-icon></a>
+            <a href="#" title="Google"><ion-icon name="logo-google"></ion-icon></a>
+            <a href="#" title="Skype"><ion-icon name="logo-skype"></ion-icon></a>
+          </div>
+        </div>
+      </section>
+
+      {/* ===== KPI SECTION ===== */}
+      <section className="kpi-section">
+        <div className="kpi-header">
+          <h2>{viewCustomer ? `${data.name}` : 'Bank Overview'}</h2>
+          <p className="kpi-subtitle">Monthly Data </p>
+          <div className="mode-toggle">
+            <button 
+              className={`mode-btn ${!viewCustomer ? 'active' : ''}`}
+              onClick={() => setViewCustomer(false)}
+            >
+              Bank
+            </button>
+            <button 
+              className={`mode-btn ${viewCustomer ? 'active' : ''}`}
+              onClick={() => setViewCustomer(true)}
+            >
+              Customer
+            </button>
+          </div>
+        </div>
+        <KPIDisplay data={data} />
+      </section>
+
+      {/* ===== SEARCH SECTION ===== */}
+      <section className="search-analytics">
         <div className="search-container">
+          <h3>Customer Acquisition</h3>
           <form onSubmit={handleSearch}>
             <input
               type="text"
-              placeholder="Tìm khách hàng theo ID hoặc tên..."
+              placeholder="Enter customer ID or name..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               disabled={loading}
             />
             <button type="submit" disabled={loading}>
-              {loading ? '🔍 Đang tìm...' : '🔍 Tìm'}
+              {loading ? 'Searching...' : 'Search'}
             </button>
           </form>
         </div>
       </section>
 
-      {/* KPI Section */}
-      <section className="kpi-section">
-        <div className="kpi-header">
-          <h2>{viewCustomer ? `${data.name}` : 'Tổng quan Ngân hàng'}</h2>
-          <p className="kpi-subtitle">Dữ liệu tháng {months[11]}</p>
-        </div>
-        <KPIDisplay data={data} />
-      </section>
-
-      {/* Chart Sections */}
+      {/* ===== CHART SECTIONS ===== */}
       <ChartSection 
         chartKey="churn" 
         data={data.churn} 
-        title="Churn Rate" 
-        color="#EA5022"
+        title="Chunk Rate" 
+        color="#852D49"
         type="line"
       />
 
       <ChartSection 
         chartKey="deposit" 
         data={data.deposit} 
-        title="Tiền Gửi" 
-        color="#66C2CC"
+        title="Deposits" 
+        color="#B8472F"
         type="line"
       />
 
       <ChartSection 
         chartKey="products" 
         data={data.productUsage} 
-        title="Sản phẩm" 
-        color="#289F7A"
+        title="Products" 
+        color="#237098"
         type="line"
       />
 
       <ChartSection 
         chartKey="complaints" 
         data={data.complaints} 
-        title="Khiếu nại" 
-        color="#5A68BA"
+        title="Complaints" 
+        color="#852D49"
         type="bar"
       />
 
       <ChartSection 
         chartKey="appUsage" 
         data={data.appUsage} 
-        title="App Usage" 
-        color="#E79EA1"
+        title="Use the App" 
+        color="#B8472F"
         type="line"
       />
 
       <ChartSection 
         chartKey="transaction" 
         data={data.transaction} 
-        title="Giao dịch" 
-        color="#1C5A6F"
+        title="Transactions" 
+        color="#237098"
         type="line"
       />
 
-      {/* Summary Section */}
+      {/* ===== SUMMARY SECTION ===== */}
       <section className="summary-section">
         <div className="summary-container">
-          <h2>📊 Tóm tắt năm</h2>
+          <h2>Summary of the Year</h2>
           <div className="summary-grid">
             <div className="summary-card">
-              <h4>📈 Xu hướng Churn</h4>
-              <p>Từ <strong>{analysis.first3Months}%</strong> (3T đầu) → <strong>{analysis.last3Months}%</strong> (3T cuối)</p>
-              <p style={{marginTop: '10px', color: analysis.yoyChange > 0 ? '#EA5022' : '#289F7A'}}>
-                {analysis.yoyChange > 0 ? '⬆️ Tăng' : '⬇️ Giảm'} <strong>{Math.abs(analysis.yoyChange)}%</strong> so với năm ngoái
+              <h4>Churn Trends</h4>
+              <p>Từ <strong>{analysis.first3Months}%</strong> (3T first) → <strong>{analysis.last3Months}%</strong> (3T last)</p>
+              <p style={{marginTop: '10px', color: analysis.yoyChange > 0 ? '#ff7200' : '#28a745'}}>
+                {analysis.yoyChange > 0 ? 'Increase' : 'Decrease'} <strong>{Math.abs(analysis.yoyChange)}%</strong> compared to last year
               </p>
             </div>
 
             <div className="summary-card">
-              <h4>💰 Tiền gửi</h4>
-              <p>Tháng này <strong>{analysis.depositChange > 0 ? '+' : ''}{analysis.depositChange}%</strong> so với tháng trước</p>
-              <p style={{marginTop: '10px', fontSize: '12px', color: '#80deea'}}>
-                Từ {defaultBankData.deposit[10]} tỷ → {defaultBankData.deposit[11]} tỷ
+              <h4>Deposits</h4>
+              <p>Month<strong>{analysis.depositChange > 0 ? '+' : ''}{analysis.depositChange}%</strong> compared to the previous month</p>
+              <p style={{marginTop: '10px', fontSize: '12px', color: '#ccc'}}>
+                From {defaultBankData.deposit[10]} billion → {defaultBankData.deposit[11]} billion
               </p>
             </div>
 
             <div className="summary-card">
-              <h4>⚠️ Churn tháng này</h4>
-              <p style={{color: analysis.changePercent > 0 ? '#EA5022' : '#289F7A'}}>
+              <h4>Churn Month</h4>
+              <p style={{color: analysis.changePercent > 0 ? '#ff7200' : '#28a745'}}>
                 <strong style={{fontSize: '24px'}}>{analysis.currentMonth}%</strong>
               </p>
               <p style={{marginTop: '10px', fontSize: '12px'}}>
-                {analysis.changePercent > 0 ? '⬆️ Tăng' : '⬇️ Giảm'} {Math.abs(analysis.changePercent)}% so với tháng trước
+                {analysis.changePercent > 0 ? 'Increase' : 'Decrease'} {Math.abs(analysis.changePercent)}% compared to the previous month
               </p>
             </div>
 
             <div className="summary-card">
-              <h4>📊 Range Churn</h4>
-              <p>Min: <strong>{analysis.minChurn}%</strong> | Max: <strong>{analysis.maxChurn}%</strong></p>
-              <p style={{marginTop: '10px', color: '#80deea', fontSize: '12px'}}>
-                Volatility: {analysis.maxChurn - analysis.minChurn}%
+              <h4>Churn Range</h4>
+              <p>Lowest: <strong>{analysis.minChurn}%</strong> | Highest: <strong>{analysis.maxChurn}%</strong></p>
+              <p style={{marginTop: '10px', color: '#ccc', fontSize: '12px'}}>
+                Range: {analysis.maxChurn - analysis.minChurn}%
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
+      {/* ===== FOOTER ===== */}
       <footer className="footer">
-        <p>🚀 Customer Churn Analytics Dashboard | Data as of {months[11]}</p>
+        <p>Customer Analytics Dashboard </p>
+        <p style={{fontSize: '12px', marginTop: '10px'}}>© 2026 PraRoz Analytics. Bảo lưu toàn bộ quyền.</p>
       </footer>
     </div>
   );
