@@ -18,6 +18,116 @@ ChartJS.register(
 const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const months = ["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"];
 
+// ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
+const defaultBankData = {
+  customers: 10500,
+  churn: [8.2, 8.5, 8.8, 9.1, 9.4, 9.7, 10.0, 10.2, 10.5, 10.8, 11.0, 11.3],
+  deposit: [245, 248, 251, 254, 257, 260, 263, 266, 269, 272, 275, 278],
+  productUsage: [65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76],
+  appUsage: ["Low", "Low", "Medium", "Medium", "Medium", "High", "High", "High", "Very High", "Very High", "Very High", "Very High"],
+  complaints: [12, 14, 11, 15, 10, 13, 9, 11, 8, 10, 7, 6],
+  transaction: [4200, 4350, 4500, 4650, 4800, 4950, 5100, 5250, 5400, 5550, 5700, 5850],
+};
+
+const defaultCustomerSample = {
+  name: "John Doe",
+  customers: 1,
+  churn: [10, 12, 15, 14, 16, 18, 20, 22, 24, 25, 27, 28],
+  deposit: [50, 48, 46, 44, 42, 40, 38, 36, 34, 32, 30, 28],
+  productUsage: [50, 52, 54, 56, 58, 60, 62, 64, 66, 68, 70, 72],
+  appUsage: ["Low", "Low", "Medium", "Medium", "High", "High", "Very High", "Very High", "Very High", "Very High", "Very High", "Very High"],
+  complaints: [0, 0, 1, 0, 1, 1, 2, 1, 1, 2, 2, 3],
+  transaction: [200, 220, 240, 260, 280, 300, 320, 340, 360, 380, 400, 420],
+  churnProbability: 0.65,
+};
+
+const chartExplanations = {
+  churn: {
+    title: "Churn Rate Trend",
+    explanation: "Tỷ lệ churn theo tháng cho thấy xu hướng tăng. Dữ liệu này giúp xác định mùa cao điểm mất khách hàng.",
+    keyPoints: [
+      "Churn tăng từ 8.2% → 11.3% trong năm",
+      "Tăng trưởng ổn định ~0.3% / tháng",
+      "Giai đoạn Q3-Q4 đặc biệt nhạy cảm",
+    ],
+    solutions: [
+      "Tăng cường chương trình giữ chân khách hàng",
+      "Phân tích nguyên nhân mất khách ở Q3-Q4",
+      "Implement early warning system",
+    ],
+  },
+  deposit: {
+    title: "Deposit Growth",
+    explanation: "Tổng tiền gửi tăng từ 245 tỷ → 278 tỷ nhưng điều này bị che phủ bởi churn tăng cao.",
+    keyPoints: [
+      "Tăng 33 tỷ trong năm (+13.5%)",
+      "Tăng ổn định +3 tỷ/tháng",
+      "Tuy nhiên, mất khách hàng có thể ảnh hưởng Q1 năm sau",
+    ],
+    solutions: [
+      "Giữ chân khách hàng cũ thay vì chỉ mở mới",
+      "Focus vào giá trị khách hàng (LTV)",
+      "Chương trình retention có incentive cao hơn",
+    ],
+  },
+  products: {
+    title: "Product Usage Rate",
+    explanation: "Tỷ lệ sử dụng sản phẩm tăng từ 65% → 76%, chỉ ra tiềm năng cross-sell và up-sell.",
+    keyPoints: [
+      "Người dùng ngày càng sử dụng nhiều sản phẩm",
+      "+11% trong năm là tín hiệu tích cực",
+      "Cross-sell có thể giảm churn",
+    ],
+    solutions: [
+      "Promosi kết hợp sản phẩm (bundle)",
+      "Personalized product recommendations",
+      "Loyalty rewards cho multi-product users",
+    ],
+  },
+  complaints: {
+    title: "Customer Complaints",
+    explanation: "Khiếu nại giảm từ 12 → 6 (50%), cho thấy cải thiện chất lượng dịch vụ.",
+    keyPoints: [
+      "Xu hướng giảm liên tục (đặc biệt Q3-Q4)",
+      "Fewer complaints = higher retention potential",
+      "Service quality improvement visible",
+    ],
+    solutions: [
+      "Tiếp tục invest vào customer service",
+      "Implement feedback loop từ complaints",
+      "Preventive measures trước khi phát sinh issue",
+    ],
+  },
+  appUsage: {
+    title: "Mobile App Usage Intensity",
+    explanation: "Mức độ sử dụng app tăng từ Low → Very High, chỉ ra digital engagement tốt.",
+    keyPoints: [
+      "Q2 onwards: Medium → High → Very High",
+      "Digital channel adoption tốt",
+      "App can be used for retention campaigns",
+    ],
+    solutions: [
+      "Push notification strategy cho retention",
+      "In-app offers & personalized messaging",
+      "Gamification để tăng engagement",
+    ],
+  },
+  transaction: {
+    title: "Monthly Transactions",
+    explanation: "Số giao d��ch tăng 39.5% (4200 → 5850), chỉ ra khách hàng ngày càng active.",
+    keyPoints: [
+      "Tăng ổn định +165 giao dịch/tháng",
+      "+41% YoY là tín hiệu mạnh",
+      "High transaction volume ≠ low churn (paradox)",
+    ],
+    solutions: [
+      "Analyze churn among high-transaction users",
+      "Identify churn drivers separately by segment",
+      "Rewards program cho frequent transactors",
+    ],
+  },
+};
+
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function analyzeData(data) {
   const churnData   = data.churn;
