@@ -648,6 +648,134 @@ const CustomerForm = ({ onSubmit, animating }) => {
   );
 };
 
+// ─── INLINE RESULT (shown inside predict-section, no page change) ─────────────
+const InlineResult = ({ form, score, onBack }) => {
+  const [show, setShow] = useState(false);
+  useEffect(() => { setTimeout(() => setShow(true), 60); }, []);
+  const { label, color } = getRiskLabel(score);
+  const { summary, factors } = getInsight(form, score);
+
+  const get = (k, fb) => (form[k] == null || form[k] === "") ? fb : Number(form[k]);
+
+  const lc1 = get("login_count_1m", 6), lc3 = get("login_count_3m", 20);
+  const tc1 = get("txn_count_1m", 4),  tc3 = get("txn_count_3m", 14);
+
+  const barCompData = {
+    labels: ["Login/M", "Txn/M", "Recency (day)", "Complaints"],
+    datasets: [
+      { label: "Khách hàng",
+        data: [ get("login_count_1m",6), get("txn_count_1m",4), Math.min(get("days_since_last_login",22),90), get("complaint_count",0) ],
+        backgroundColor: "#852D49cc", borderColor: "#852D49", borderWidth: 2, borderRadius: 4 },
+      { label: "Trung bình",
+        data: [6.5, 4.8, 22, 0.8],
+        backgroundColor: "#237098cc", borderColor: "#237098", borderWidth: 2, borderRadius: 4 },
+    ],
+  };
+
+  const trendData = {
+    labels: ["Login M-3","Login M-2","Login M-1","Txn M-3","Txn M-2","Txn M-1"],
+    datasets: [{
+      label: "Activity",
+      data: [ Math.round((lc3-lc1)*0.45), Math.round((lc3-lc1)*0.55), lc1, Math.round((tc3-tc1)*0.45), Math.round((tc3-tc1)*0.55), tc1 ],
+      backgroundColor: ["#237098cc","#237098aa","#237098","#B8472Fcc","#B8472Faa","#B8472F"],
+      borderColor:     ["#237098","#237098","#237098","#B8472F","#B8472F","#B8472F"],
+      borderWidth: 2, borderRadius: 4,
+    }],
+  };
+
+  const chartOpts = (horizontal = false) => ({
+    responsive: true, maintainAspectRatio: false,
+    indexAxis: horizontal ? "y" : "x",
+    plugins: {
+      legend: { display: !horizontal, labels: { color: "#ccc", font: { family: "Arial", size: 11 } } },
+      tooltip: { enabled: true },
+    },
+    scales: {
+      x: { ticks: { color: "#999", font: { family: "Arial", size: 10 } }, grid: { color: "rgba(255,255,255,0.05)" } },
+      y: { ticks: { color: "#999", font: { family: "Arial", size: 10 } }, grid: { color: "rgba(255,255,255,0.05)" } },
+    },
+  });
+
+  return (
+    <div className={`inline-result ${show ? "inline-result--visible" : ""}`}>
+      {/* Header */}
+      <div className="ir-header">
+        <div>
+          <h2 className="ir-title">Kết quả Phân tích Rủi ro Churn</h2>
+          <p className="ir-subtitle">Panel Feature Engineering</p>
+        </div>
+        <button className="back-btn" onClick={onBack}>← Phân tích lại</button>
+      </div>
+
+      {/* Risk + Insight */}
+      <div className="result-top-grid">
+        <div className="risk-card" style={{ borderColor: color, boxShadow: `0 0 30px ${color}44` }}>
+          <GaugeChart score={score} />
+          <div className="risk-badge" style={{ background: `${color}22`, border: `1.5px solid ${color}`, color }}>{label}</div>
+          <div className="risk-score-big" style={{ color }}><CountUp to={score} />%</div>
+          <p className="risk-desc">Xác suất rời bỏ dự đoán bởi mô hình</p>
+        </div>
+        <div className="ai-insight-box">
+          <h3 className="insight-title">Insight</h3>
+          <p className="insight-summary">{summary}</p>
+          <p className="insight-factor-label">Top yếu tố ảnh hưởng</p>
+          <ul className="insight-factors">
+            {factors.map((f, i) => (
+              <li key={i} className={`insight-factor insight-factor--${i}`}>{i + 1}. {f}</li>
+            ))}
+          </ul>
+        </div>
+      </div>
+
+      {/* Charts 2x2 */}
+      <div className="result-charts-grid">
+        <div className="result-chart-box">
+          <h3 className="result-chart-title">Customer vs Segment Average</h3>
+          <div style={{ height: 220 }}><Bar data={barCompData} options={chartOpts()} /></div>
+        </div>
+        <div className="result-chart-box">
+          <h3 className="result-chart-title">Activity Trend (3 tháng)</h3>
+          <div style={{ height: 220 }}><Bar data={trendData} options={chartOpts()} /></div>
+        </div>
+        <div className="result-chart-box" style={{ gridColumn: "1 / -1" }}>
+          <h3 className="result-chart-title">Risk Breakdown</h3>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "8px 0" }}>
+            {[
+              { label: "Recency Risk",  val: Math.min(get("days_since_last_login",22) / 90 * 100, 100) },
+              { label: "Activity Drop", val: lc3 > 0 ? Math.max(0, (1 - lc1/(lc3/3)) * 100) : 0 },
+              { label: "Complaint Risk",val: Math.min(get("complaint_count",0) * 20, 100) },
+              { label: "Balance Risk",  val: get("balance_change_pct",0) < 0 ? Math.min(Math.abs(get("balance_change_pct",0)) * 100, 100) : 0 },
+            ].map((item, i) => {
+              const pct = Math.round(item.val);
+              const barColor = pct > 70 ? "#ef4444" : pct > 40 ? "#eab308" : "#22c55e";
+              return (
+                <div key={i}>
+                  <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4 }}>
+                    <span style={{ fontFamily:"Arial,sans-serif", fontSize:12, color:"#ccc" }}>{item.label}</span>
+                    <span style={{ fontFamily:"Arial,sans-serif", fontSize:12, color: barColor, fontWeight:"bold" }}>{pct}%</span>
+                  </div>
+                  <div style={{ height:8, background:"rgba(255,255,255,0.08)", borderRadius:4, overflow:"hidden" }}>
+                    <div style={{ width:`${pct}%`, height:"100%", background: barColor, borderRadius:4,
+                      transition:"width 1s ease", boxShadow:`0 0 6px ${barColor}88` }}/>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="history-note">
+        <span></span>
+        <p>Prediction saved — Score: <strong style={{ color: "#ff7200" }}>{score}%</strong>
+          &nbsp;|&nbsp;<strong style={{ color }}>{label}</strong>
+          &nbsp;|&nbsp;{new Date().toLocaleString("vi-VN")}
+        </p>
+      </div>
+    </div>
+  );
+};
+
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App() {
   const [page,          setPage]          = useState("landing");
@@ -662,16 +790,6 @@ export default function App() {
   const [error,         setError]         = useState(null);
   const [searchInput,   setSearchInput]   = useState("");
   const [searchQuery,   setSearchQuery]   = useState("");
-  const [loginEmail,    setLoginEmail]    = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://unpkg.com/ionicons@5.4.0/dist/ionicons.js";
-    script.async = true;
-    document.body.appendChild(script);
-    return () => { if (script.parentNode) script.parentNode.removeChild(script); };
-  }, []);
 
   const handleAnalyze = (payload) => {
     setExiting(true);
@@ -683,22 +801,17 @@ export default function App() {
         setPredForm(payload);
         setPredScore(risk);
         setLoading(false);
-        setPage("result");
+        // Scroll to predict section after result loads
+        setTimeout(() => {
+          document.querySelector(".predict-section")?.scrollIntoView({ behavior: "smooth" });
+        }, 100);
       }, 1500);
     }, 650);
   };
 
   const handleBack = () => {
-    setPage("landing");
     setPredForm(null);
     setPredScore(0);
-  };
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (!loginEmail || !loginPassword) { setError("Vui lòng nhập email và mật khẩu."); return; }
-    setError("Demo mode — Login not available");
-    setTimeout(() => setError(null), 3000);
   };
 
   const handleSearch = async (e) => {
@@ -732,7 +845,7 @@ export default function App() {
   const data     = viewCustomer ? customerData : bankData;
   const analysis = analyzeData(data);
 
-  if (page === "result") return <ResultPage form={predForm} score={predScore} onBack={handleBack} />;
+  if (false) return null; // placeholder
 
   return (
     <div className="main">
@@ -781,24 +894,28 @@ export default function App() {
           </button>
         </div>
 
-        {/* LOGIN FORM */}
-        <div className="form">
-          <h2>Log in here</h2>
-          <form onSubmit={handleLogin}>
-            <input type="email" placeholder="Enter Your Email"
-              value={loginEmail} onChange={e => setLoginEmail(e.target.value)}/>
-            <input type="password" placeholder="Enter Your Password"
-              value={loginPassword} onChange={e => setLoginPassword(e.target.value)}/>
-            <button className="btn" type="submit">Log in</button>
-          </form>
-          <p className="link">No account yet.<br/><a href="#">Register here</a></p>
-          <p className="liw">Log in with</p>
-          <div className="icons">
-            <a href="#"><ion-icon name="logo-facebook"/></a>
-            <a href="#"><ion-icon name="logo-instagram"/></a>
-            <a href="#"><ion-icon name="logo-twitter"/></a>
-            <a href="#"><ion-icon name="logo-google"/></a>
-            <a href="#"><ion-icon name="logo-skype"/></a>
+        {/* BANK OVERVIEW CARD */}
+        <div className="bank-overview-card">
+          <h2 className="bank-card-title">Bank Overview</h2>
+          <div className="bank-card-stats">
+            {[
+              { label: "Total Customers",    value: bankData.customers.toLocaleString(),         highlight: false },
+              { label: "Churn Rate (Latest)", value: `${bankData.churn[11]}%`,                   highlight: true  },
+              { label: "Total Deposits",      value: `${bankData.deposit[11]} Tỷ`,               highlight: false },
+              { label: "App Usage",           value: bankData.appUsage[11],                      highlight: false },
+              { label: "Product Usage",       value: `${bankData.productUsage[11]}%`,            highlight: false },
+              { label: "Transactions/M",      value: bankData.transaction[11].toLocaleString(),  highlight: false },
+            ].map((item, i) => (
+              <div key={i} className="bank-stat-row">
+                <span className="bank-stat-icon">{item.icon}</span>
+                <span className="bank-stat-label">{item.label}</span>
+                <span className={`bank-stat-value${item.highlight ? " bank-stat-alert" : ""}`}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+          <div className="bank-card-footer">
+            <span className="bank-card-badge">LIVE DATA</span>
+            <span className="bank-card-period">FY 2025 · Month 12</span>
           </div>
         </div>
       </section>
@@ -848,7 +965,11 @@ export default function App() {
       {/* ===== CUSTOMER FORM (NEW) ===== */}
       <section className="predict-section">
         <div className="predict-container">
-          <CustomerForm onSubmit={handleAnalyze} animating={exiting}/>
+          {predForm && predScore > 0 ? (
+            <InlineResult form={predForm} score={predScore} onBack={handleBack} />
+          ) : (
+            <CustomerForm onSubmit={handleAnalyze} animating={exiting}/>
+          )}
         </div>
       </section>
 

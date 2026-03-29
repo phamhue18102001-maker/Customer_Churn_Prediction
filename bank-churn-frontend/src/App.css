@@ -246,150 +246,104 @@ body {
   transform: translateY(-3px);
 }
 
-/* ===== LOGIN FORM ===== */
-.form {
-  width: 250px;
-  height: auto;
-  background: linear-gradient(to top, rgba(0,0,0,0.8) 50%, rgba(0,0,0,0.8) 50%);
-  border-radius: 10px;
-  padding: 25px;
-  box-shadow: 0 0 30px rgba(255, 114, 0, 0.15);
-  backdrop-filter: blur(10px);
-  animation: slideInRight 0.8s ease-out;
+/* ===== BANK OVERVIEW CARD ===== */
+.bank-overview-card {
   flex: 0 0 350px;
   max-width: 100%;
+  background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.75) 100%);
+  border-radius: 14px;
+  padding: 0 0 20px 0;
+  box-shadow: 0 0 40px rgba(255, 114, 0, 0.18);
+  backdrop-filter: blur(12px);
+  animation: slideInRight 0.8s ease-out;
+  border: 1.5px solid rgba(255,114,0,0.25);
+  overflow: hidden;
 }
 
-.form h2 {
+.bank-card-title {
   width: 100%;
   font-family: sans-serif;
   text-align: center;
   color: #000;
-  font-size: 22px;
+  font-size: 18px;
   background-color: #ff7200;
-  border-radius: 10px;
   margin: 0;
-  padding: 12px 8px;
+  padding: 14px 8px;
   font-weight: bold;
-  letter-spacing: 1px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
 }
 
-.form form {
+.bank-card-stats {
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  margin-top: 20px;
+  gap: 0;
+  padding: 10px 20px 0;
 }
 
-.form input {
-  width: 100%;
-  height: 35px;
-  background: transparent;
-  border-bottom: 2px solid #ff7200;
-  border-top: none;
-  border-right: none;
-  border-left: none;
-  color: #fff;
-  font-size: 15px;
-  letter-spacing: 1px;
-  font-family: sans-serif;
-  padding: 8px 0;
-  transition: all 0.3s ease;
-}
-
-.form input:focus {
-  outline: none;
-  border-bottom-color: #fff;
-  background: rgba(255, 114, 0, 0.08);
-  padding-left: 10px;
-}
-
-.form input::placeholder { color: rgba(255,255,255,0.6); }
-
-.form .btn,
-.btnn {
-  width: 100%;
-  height: 40px;
-  background: #ff7200;
-  border: none;
-  margin-top: 10px;
-  font-size: 16px;
-  border-radius: 10px;
-  cursor: pointer;
-  color: #000;
-  font-weight: bold;
-  font-family: Arial, sans-serif;
-  transition: all 0.3s ease;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.form .btn:hover,
-.btnn:hover {
-  background: #fff;
-  color: #ff7200;
-  box-shadow: 0 0 20px rgba(255, 114, 0, 0.5);
-  transform: translateY(-2px);
-}
-
-.form .btn:focus,
-.btnn:focus { outline: none; }
-
-.form .link {
-  font-family: Arial, Helvetica, sans-serif;
-  font-size: 13px;
-  padding-top: 15px;
-  text-align: center;
-  color: #ccc;
-  margin-top: 10px;
-}
-
-.form .link a {
-  text-decoration: none;
-  color: #ff7200;
-  font-weight: bold;
-  transition: all 0.3s ease;
-}
-
-.form .link a:hover {
-  text-shadow: 0 0 10px rgba(255, 114, 0, 0.6);
-  color: #fff;
-}
-
-.form .liw {
-  padding-top: 15px;
-  padding-bottom: 10px;
-  text-align: center;
-  color: #999;
-  font-size: 12px;
-}
-
-.icons {
-  display: flex;
-  gap: 15px;
-  justify-content: center;
-  margin-top: 15px;
-}
-
-.icons a {
-  text-decoration: none;
-  color: #fff;
-  transition: all 0.3s ease;
+.bank-stat-row {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255,114,0,0.12);
+  transition: background 0.2s ease;
 }
 
-.icons ion-icon {
+.bank-stat-row:last-child { border-bottom: none; }
+
+.bank-stat-row:hover {
+  background: rgba(255,114,0,0.06);
+  padding-left: 6px;
+  border-radius: 6px;
+}
+
+.bank-stat-icon {
+  font-size: 18px;
+  width: 28px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.bank-stat-label {
+  flex: 1;
+  font-family: 'Arial', sans-serif;
+  font-size: 12px;
+  color: #aaa;
+  letter-spacing: 0.5px;
+}
+
+.bank-stat-value {
+  font-family: 'Arial', sans-serif;
+  font-size: 15px;
+  font-weight: bold;
   color: #fff;
-  font-size: 30px;
-  padding: 5px 10px;
-  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
 }
 
-.icons a:hover ion-icon {
-  color: #ff7200;
-  transform: scale(1.2);
+.bank-stat-alert { color: #ff7200 !important; }
+
+.bank-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px 0;
+  margin-top: 6px;
+}
+
+.bank-card-badge {
+  font-family: 'Arial', sans-serif;
+  font-size: 10px;
+  color: #22c55e;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+.bank-card-period {
+  font-family: 'Arial', sans-serif;
+  font-size: 10px;
+  color: #666;
+  letter-spacing: 0.5px;
 }
 
 /* ===== KPI SECTION ===== */
@@ -948,7 +902,43 @@ body {
   transform: translateY(-2px);
 }
 
-/* ===== RESULT PAGE ===== */
+/* ===== INLINE RESULT ===== */
+.inline-result {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.65s ease, transform 0.65s ease;
+}
+
+.inline-result--visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.ir-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.ir-title {
+  font-family: 'Times New Roman', serif;
+  font-size: 26px;
+  color: #fff;
+  margin-bottom: 4px;
+  letter-spacing: 1px;
+}
+
+.ir-subtitle {
+  font-family: 'Arial', sans-serif;
+  color: #999;
+  font-size: 13px;
+  margin: 0;
+}
+
+/* ===== RESULT PAGE (full-page, kept for legacy) ===== */
 .result-page {
   min-height: 100vh;
   opacity: 0;
@@ -1185,7 +1175,7 @@ body {
   .srch { width: calc(100% - 100px); }
   .content h1 { font-size: 36px; }
   .content h1 span { font-size: 40px; }
-  .form { max-width: 100%; }
+  .bank-overview-card { max-width: 100%; flex: none; width: 100%; }
   .kpi-display { grid-template-columns: repeat(2, 1fr); }
   .search-analytics form { flex-direction: column; }
 }
@@ -1197,5 +1187,5 @@ body {
   .kpi-display { grid-template-columns: 1fr; }
   .chart-container { height: 250px; }
   .summary-grid { grid-template-columns: 1fr; }
-  .form { padding: 15px; }
+  .bank-overview-card { padding-bottom: 16px; }
 }
