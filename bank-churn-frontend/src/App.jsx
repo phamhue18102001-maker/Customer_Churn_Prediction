@@ -893,30 +893,8 @@ export default function App() {
             DISCOVER NOW
           </button>
         </div>
-
-        {/* BANK OVERVIEW CARD */}
-        <div className="bank-overview-card">
-          <h2 className="bank-card-title">Bank Overview</h2>
-          <div className="bank-card-stats">
-            {[
-              { label: "Total Customers",    value: bankData.customers.toLocaleString(),         highlight: false },
-              { label: "Churn Rate (Latest)", value: `${bankData.churn[11]}%`,                   highlight: true  },
-              { label: "Total Deposits",      value: `${bankData.deposit[11]} Tỷ`,               highlight: false },
-              { label: "App Usage",           value: bankData.appUsage[11],                      highlight: false },
-              { label: "Product Usage",       value: `${bankData.productUsage[11]}%`,            highlight: false },
-              { label: "Transactions/M",      value: bankData.transaction[11].toLocaleString(),  highlight: false },
-            ].map((item, i) => (
-              <div key={i} className="bank-stat-row">
-                <span className="bank-stat-icon">{item.icon}</span>
-                <span className="bank-stat-label">{item.label}</span>
-                <span className={`bank-stat-value${item.highlight ? " bank-stat-alert" : ""}`}>{item.value}</span>
-              </div>
-            ))}
-          </div>
-          <div className="bank-card-footer">
-            <span className="bank-card-badge">LIVE DATA</span>
-            <span className="bank-card-period">FY 2025 · Month 12</span>
-          </div>
+        <div className="hero-image">
+          <img src="/assets/churn_hero.png" alt="Churn Analysis"/>
         </div>
       </section>
 
@@ -924,7 +902,7 @@ export default function App() {
       <section className={`kpi-section ${exiting ? "kpi-exit" : ""}`}>
         <div className="kpi-header">
           <h2>{viewCustomer ? data.name : "Bank Overview"}</h2>
-          <p className="kpi-subtitle">Monthly Data</p>
+          <p className="kpi-subtitle"></p>
           <div className="mode-toggle">
             <button className={`mode-btn ${!viewCustomer?"active":""}`} onClick={()=>setViewCustomer(false)}>Bank</button>
             <button className={`mode-btn ${viewCustomer?"active":""}`}  onClick={()=>setViewCustomer(true)}>Customer</button>
