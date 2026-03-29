@@ -10,7 +10,11 @@ html {
 
 body {
   font-family: 'Arial', 'Poppins', sans-serif;
-  background: linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.5) 100%), url('50000746-a17d-4832-a235-bf2c58bcf046.png');
+  background: linear-gradient(
+  to bottom,
+  rgba(20, 40, 30, 0.35) 0%,
+  rgba(20, 40, 30, 0.55) 100%
+), url('bc50c8ee-9ba4-4bb3-bf71-456c493933d3.png');
   background-size: cover;
   background-position: center;
   color: #fff;

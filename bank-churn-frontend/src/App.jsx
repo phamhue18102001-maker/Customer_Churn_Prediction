@@ -880,23 +880,32 @@ export default function App() {
       )}
 
       {/* ===== HERO ===== */}
-      <section className="content">
-        <div className="hero-text">
-          <h1>Churn Analysis <br/><span>Customer</span><br/>Specialist</h1>
-          <p className="par">
-            Explore detailed data about customer churn rates,
-            predict churn trends, and receive specific solutions
-            to retain customers.
-          </p>
-          <button className="cn"
-            onClick={() => document.querySelector(".kpi-section")?.scrollIntoView({behavior:"smooth"})}>
-            DISCOVER NOW
-          </button>
-        </div>
-        <div className="hero-image">
-          <img src="/assets/churn_hero.png" alt="Churn Analysis"/>
-        </div>
-      </section>
+<section className="content">
+  <div className="hero-text">
+    <h1>
+      Churn Analysis <br />
+      <span>Customer</span><br />
+      Specialist
+    </h1>
+
+    <p className="par">
+      Explore detailed data about customer churn rates,
+      predict churn trends, and receive specific solutions
+      to retain customers.
+    </p>
+
+    <button
+      className="cn"
+      onClick={() =>
+        document
+          .querySelector(".kpi-section")
+          ?.scrollIntoView({ behavior: "smooth" })
+      }
+    >
+      DISCOVER NOW
+    </button>
+  </div>
+</section>
 
       {/* ===== KPI SECTION ===== */}
       <section className={`kpi-section ${exiting ? "kpi-exit" : ""}`}>
@@ -910,7 +919,7 @@ export default function App() {
         </div>
         <div className="kpi-display">
           {[
-            {label:"Tổng Khách Hàng",      val: data.customers?.toLocaleString?.()??data.customers},
+            {label:"Total Customers",      val: data.customers?.toLocaleString?.()??data.customers},
             {label:"Monthly Turnover Rate", val: `${data.churn[11]}%`,   style:{color:"#ff7200"}},
             {label: "Ending Deposit",        val: `${data.deposit[11]} Tỷ`},
             {label:"Products Used",         val: `${data.productUsage[11]}%`},
