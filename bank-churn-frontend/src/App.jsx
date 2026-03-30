@@ -889,9 +889,9 @@ export default function App() {
     </h1>
 
     <p className="par">
-      Explore detailed data about customer churn rates,
-      predict churn trends, and receive specific solutions
-      to retain customers.
+      Unlock the power of advanced churn analytics to understand customer behavior at scale. 
+  Detect early warning signals, forecast churn with precision, and deploy intelligent, 
+  data-driven strategies to retain high-value customers and maximize lifetime value.
     </p>
 
     <button
