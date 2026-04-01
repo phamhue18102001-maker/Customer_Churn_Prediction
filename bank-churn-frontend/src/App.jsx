@@ -18,6 +18,20 @@ ChartJS.register(
 const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const months = ["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"];
 
+// ─── CUSTOMER DATABASE (mock — thay bằng API thực tế) ────────────────────────
+const CUSTOMER_DB = {
+  "KH001": { id:"KH001",  age:35, gender:"Male",   creditScore:620, tenure_months:24, balance:75000,  estimatedSalary:60000,  numOfProducts:2, hasCrCard:1, isActiveMember:1, complaint_count:1 },
+  "KH002": { id:"KH002",  age:28, gender:"Female", creditScore:480, tenure_months:6,  balance:8500,   estimatedSalary:35000,  numOfProducts:1, hasCrCard:0, isActiveMember:0, complaint_count:3 },
+  "KH003": { id:"KH003",  age:52, gender:"Male",   creditScore:780, tenure_months:60, balance:150000, estimatedSalary:120000, numOfProducts:3, hasCrCard:1, isActiveMember:1, complaint_count:0 },
+  "KH004": { id:"KH004",  age:41, gender:"Female", creditScore:540, tenure_months:12, balance:22000,  estimatedSalary:48000,  numOfProducts:1, hasCrCard:1, isActiveMember:0, complaint_count:2 },
+  "KH005": { id:"KH005",  age:30, gender:"Male",   creditScore:710, tenure_months:36, balance:95000,  estimatedSalary:80000,  numOfProducts:2, hasCrCard:1, isActiveMember:1, complaint_count:0 },
+  "KH006": { id:"KH006",  age:45, gender:"Female", creditScore:420, tenure_months:4,  balance:5000,   estimatedSalary:28000,  numOfProducts:1, hasCrCard:0, isActiveMember:0, complaint_count:4 },
+  "KH007": { id:"KH007",  age:38, gender:"Male",   creditScore:660, tenure_months:18, balance:43000,  estimatedSalary:55000,  numOfProducts:2, hasCrCard:1, isActiveMember:1, complaint_count:1 },
+  "KH008": { id:"KH008",  age:55, gender:"Female", creditScore:820, tenure_months:72, balance:210000, estimatedSalary:150000, numOfProducts:4, hasCrCard:1, isActiveMember:1, complaint_count:0 },
+  "KH009": { id:"KH009",  age:25, gender:"Male",   creditScore:510, tenure_months:3,  balance:3200,   estimatedSalary:22000,  numOfProducts:1, hasCrCard:0, isActiveMember:0, complaint_count:2 },
+  "KH010": { id:"KH010",  age:48, gender:"Female", creditScore:695, tenure_months:42, balance:88000,  estimatedSalary:75000,  numOfProducts:3, hasCrCard:1, isActiveMember:1, complaint_count:0 },
+};
+
 // ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
 const defaultBankData = {
   customers: 10500,
@@ -153,49 +167,54 @@ function analyzeData(data) {
 // ─── SMART CHURN PREDICTION ───────────────────────────────────────────────────
 function computeRisk(form) {
   const get = (k, fb) => (form[k] == null || form[k] === "") ? fb : Number(form[k]);
-  let score = 30;
+  let score = 25;
 
-  const dsl = get("days_since_last_login", 22);
-  const dst = get("days_since_last_txn",   18);
-  score += Math.min(dsl / 3, 20);
-  score += Math.min(dst / 4, 15);
+  // Credit Score
+  const cs = get("creditScore", 650);
+  if      (cs < 450) score += 18;
+  else if (cs < 550) score += 12;
+  else if (cs < 650) score += 6;
+  else if (cs > 750) score -= 6;
 
-  const comp = get("complaint_count", 0.8);
-  score += comp * 8;
-
-  const bal = get("balance", 76486);
-  if      (bal < 10000)  score += 15;
-  else if (bal < 30000)  score += 8;
-  else if (bal > 100000) score -= 5;
-
-  const lc1 = get("login_count_1m", 6);
-  const lc3 = get("login_count_3m", 20);
-  if (lc1 === 0) score += 12;
-  else if (lc1 < 3) score += 6;
-  if (lc3 > 0 && lc1 / (lc3 / 3) < 0.4) score += 10;
-
-  const tc1 = get("txn_count_1m", 4);
-  const tc3 = get("txn_count_3m", 14);
-  if (tc1 === 0) score += 10;
-  if (tc3 > 0 && tc1 / (tc3 / 3) < 0.4) score += 12;
-
-  const bcp = get("balance_change_pct", 0);
-  if (bcp < -0.1) score += 10;
-
-  const isActive = get("isActiveMember", 1);
-  if (isActive === 0) score += 10;
-
+  // Tenure
   const tenure = get("tenure_months", 24);
-  if      (tenure < 6)  score += 8;
-  else if (tenure > 36) score -= 5;
+  if      (tenure < 6)  score += 15;
+  else if (tenure < 12) score += 8;
+  else if (tenure > 48) score -= 8;
 
-  const cs  = get("creditScore", 650);
-  if      (cs < 450) score += 8;
-  else if (cs > 750) score -= 4;
+  // Balance
+  const bal = get("balance", 76486);
+  if      (bal < 5000)   score += 18;
+  else if (bal < 15000)  score += 10;
+  else if (bal < 30000)  score += 4;
+  else if (bal > 100000) score -= 8;
 
+  // Number of Products
   const nop = get("numOfProducts", 2);
-  if      (nop === 1) score += 6;
-  else if (nop >= 3)  score -= 4;
+  if      (nop === 1) score += 12;
+  else if (nop >= 3)  score -= 6;
+
+  // Active Member
+  const isActive = get("isActiveMember", 1);
+  if (isActive === 0) score += 14;
+
+  // Complaint Count
+  const comp = get("complaint_count", 0);
+  score += comp * 10;
+
+  // Has Credit Card
+  const hasCrCard = get("hasCrCard", 1);
+  if (hasCrCard === 0) score += 4;
+
+  // Age
+  const age = get("age", 35);
+  if      (age < 25) score += 6;
+  else if (age > 55) score += 4;
+
+  // Salary
+  const sal = get("estimatedSalary", 60000);
+  if      (sal < 25000)  score += 8;
+  else if (sal > 100000) score -= 4;
 
   return Math.min(100, Math.max(0, Math.round(score)));
 }
@@ -209,18 +228,15 @@ function getRiskLabel(score) {
 function getInsight(form, score) {
   const get = (k, fb) => (form[k] == null || form[k] === "") ? fb : Number(form[k]);
   const factors = [];
-  if (get("days_since_last_login", 22) > 30)          factors.push("Lâu không đăng nhập (>" + get("days_since_last_login", 22) + " ngày)");
-  if (get("complaint_count", 0) > 1)                  factors.push("Nhiều khiếu nại gần đây (" + get("complaint_count", 0) + " lần)");
-  if (get("balance_change_pct", 0) < -0.1)            factors.push("Số dư đang giảm mạnh (" + (get("balance_change_pct",0)*100).toFixed(0) + "%)");
-  const lc3 = get("login_count_3m", 20), lc1 = get("login_count_1m", 6);
-  if (lc3 > 0 && lc1 / (lc3 / 3) < 0.5)             factors.push("Hoạt động đăng nhập giảm >50%");
-  const tc3 = get("txn_count_3m", 14), tc1 = get("txn_count_1m", 4);
-  if (tc3 > 0 && tc1 / (tc3 / 3) < 0.5)             factors.push("Tần suất giao dịch giảm mạnh");
-  if (get("isActiveMember", 1) === 0)                 factors.push("Không phải thành viên active");
-  if (get("tenure_months", 24) < 6)                   factors.push("Khách hàng mới (<6 tháng)");
-  if (factors.length === 0)                            factors.push("Hồ sơ khách hàng ổn định");
+  if (get("complaint_count", 0) > 1)    factors.push("Nhiều khiếu nại gần đây (" + get("complaint_count", 0) + " lần)");
+  if (get("isActiveMember", 1) === 0)   factors.push("Không phải thành viên active");
+  if (get("tenure_months", 24) < 6)     factors.push("Khách hàng mới (<6 tháng)");
+  if (get("balance", 76486) < 10000)    factors.push("Số dư tài khoản thấp");
+  if (get("numOfProducts", 2) === 1)    factors.push("Chỉ sử dụng 1 sản phẩm");
+  if (get("creditScore", 650) < 500)    factors.push("Điểm tín dụng thấp (<500)");
+  if (factors.length === 0)             factors.push("Hồ sơ khách hàng ổn định");
   const summary =
-    score >= 70 ? "Khách hàng có nguy cơ rời bỏ CAO do thiếu hoạt động và tương tác giảm sút."
+    score >= 70 ? "Khách hàng có nguy cơ rời bỏ CAO. Cần can thiệp ngay."
     : score >= 30 ? "Khách hàng có dấu hiệu rủi ro TRUNG BÌNH, cần theo dõi thêm."
     : "Khách hàng ổn định, ít có nguy cơ rời bỏ trong thời gian tới.";
   return { summary, factors: factors.slice(0, 3) };
@@ -357,17 +373,17 @@ const ResultPage = ({ form, score, onBack }) => {
 
   const get = (k, fb) => (form[k] == null || form[k] === "") ? fb : Number(form[k]);
 
-  // Bar chart: Customer vs Avg
+  // Bar chart: Customer vs Avg (thông tin cơ bản)
   const barCompData = {
-    labels: ["Login/M", "Txn/M", "Recency (day)", "Complaints"],
+    labels: ["Credit Score", "Tenure (mth)", "Balance (k)", "Products"],
     datasets: [
       {
         label: "Khách hàng",
         data: [
-          get("login_count_1m", 6),
-          get("txn_count_1m", 4),
-          Math.min(get("days_since_last_login", 22), 90),
-          get("complaint_count", 0),
+          get("creditScore", 650),
+          get("tenure_months", 24),
+          Math.round(get("balance", 76486) / 1000),
+          get("numOfProducts", 2),
         ],
         backgroundColor: "#852D49cc",
         borderColor: "#852D49",
@@ -376,7 +392,7 @@ const ResultPage = ({ form, score, onBack }) => {
       },
       {
         label: "Trung bình",
-        data: [6.5, 4.8, 22, 0.8],
+        data: [650, 24, 76, 2],
         backgroundColor: "#237098cc",
         borderColor: "#237098",
         borderWidth: 2,
@@ -385,36 +401,14 @@ const ResultPage = ({ form, score, onBack }) => {
     ],
   };
 
-  // Feature importance
+  // Feature importance (thông tin cơ bản)
   const importanceData = {
-    labels: ["Days Since Login","Txn Drop","Complaints","Balance Change","Login Drop","Txn Trend","Active Member","Tenure","Products"],
+    labels: ["Complaints","Active Member","Balance","Num Products","Tenure","Credit Score","Age","Salary","Has CrCard"],
     datasets: [{
       label: "Importance",
-      data: [0.21, 0.18, 0.15, 0.12, 0.10, 0.08, 0.07, 0.05, 0.04],
+      data: [0.22, 0.18, 0.16, 0.14, 0.12, 0.09, 0.05, 0.03, 0.01],
       backgroundColor: ["#852D49","#852D49","#B8472F","#B8472F","#B8472F","#237098","#237098","#237098","#237098"].map(c => c + "cc"),
       borderColor:     ["#852D49","#852D49","#B8472F","#B8472F","#B8472F","#237098","#237098","#237098","#237098"],
-      borderWidth: 2,
-      borderRadius: 4,
-    }],
-  };
-
-  // Trend chart
-  const lc1 = get("login_count_1m",6), lc3 = get("login_count_3m",20);
-  const tc1 = get("txn_count_1m",4),  tc3 = get("txn_count_3m",14);
-  const trendData = {
-    labels: ["Login M-3","Login M-2","Login M-1","Txn M-3","Txn M-2","Txn M-1"],
-    datasets: [{
-      label: "Activity",
-      data: [
-        Math.round((lc3 - lc1) * 0.45),
-        Math.round((lc3 - lc1) * 0.55),
-        lc1,
-        Math.round((tc3 - tc1) * 0.45),
-        Math.round((tc3 - tc1) * 0.55),
-        tc1,
-      ],
-      backgroundColor: ["#237098cc","#237098aa","#237098","#B8472Fcc","#B8472Faa","#B8472F"],
-      borderColor:     ["#237098","#237098","#237098","#B8472F","#B8472F","#B8472F"],
       borderWidth: 2,
       borderRadius: 4,
     }],
@@ -494,20 +488,13 @@ const ResultPage = ({ form, score, onBack }) => {
           </div>
 
           <div className="result-chart-box">
-            <h3 className="result-chart-title">Activity Trend (3 tháng)</h3>
-            <div style={{ height: 220 }}>
-              <Bar data={trendData} options={chartOpts()} />
-            </div>
-          </div>
-
-          <div className="result-chart-box">
             <h3 className="result-chart-title">Risk Breakdown</h3>
             <div style={{ height: 220, display: "flex", flexDirection: "column", justifyContent: "center", gap: 12, padding: "0 8px" }}>
               {[
-                { label: "Recency Risk",     val: Math.min(get("days_since_last_login",22) / 90 * 100, 100) },
-                { label: "Activity Drop",    val: lc3 > 0 ? Math.max(0, (1 - lc1/(lc3/3)) * 100) : 0 },
-                { label: "Complaint Risk",   val: Math.min(get("complaint_count",0) * 20, 100) },
-                { label: "Balance Risk",     val: get("balance_change_pct",0) < 0 ? Math.min(Math.abs(get("balance_change_pct",0)) * 100, 100) : 0 },
+                { label: "Credit Score Risk", val: Math.max(0, Math.min(100, ((750 - get("creditScore",650)) / 450) * 100)) },
+                { label: "Loyalty Risk",      val: Math.max(0, Math.min(100, ((48 - Math.min(get("tenure_months",24), 48)) / 48) * 100)) },
+                { label: "Balance Risk",      val: Math.max(0, Math.min(100, ((100000 - Math.min(get("balance",76486), 100000)) / 100000) * 100)) },
+                { label: "Complaint Risk",    val: Math.min(get("complaint_count",0) * 25, 100) },
               ].map((item, i) => {
                 const pct = Math.round(item.val);
                 const barColor = pct > 70 ? "#ef4444" : pct > 40 ? "#eab308" : "#22c55e";
@@ -545,12 +532,9 @@ const ResultPage = ({ form, score, onBack }) => {
 // ─── CUSTOMER FORM ────────────────────────────────────────────────────────────
 const EMPTY_FORM = {
   age:"", gender:"Male", creditScore:"", tenure_months:"",
-  balance:"", estimatedSalary:"", balance_change_pct:"",
+  balance:"", estimatedSalary:"",
   hasCrCard:true, isActiveMember:true, numOfProducts:2,
-  complaint_count:"", days_since_last_login:"", days_since_last_txn:"",
-  login_count_1m:"", login_count_3m:"",
-  txn_count_1m:"", txn_count_3m:"",
-  avg_txn_amount_3m:"", std_txn_amount_3m:"",
+  complaint_count:"",
 };
 
 const CustomerForm = ({ onSubmit, animating }) => {
@@ -563,9 +547,6 @@ const CustomerForm = ({ onSubmit, animating }) => {
     const e = {};
     if (!form.age || Number(form.age)<18 || Number(form.age)>100) e.age="18–100";
     if (!form.creditScore || Number(form.creditScore)<300 || Number(form.creditScore)>900) e.creditScore="300–900";
-    if (form.balance_change_pct!=="" && (Number(form.balance_change_pct)<-1||Number(form.balance_change_pct)>1)) e.balance_change_pct="-1.0 đến 1.0";
-    if (form.login_count_3m!==""&&form.login_count_1m!==""&&Number(form.login_count_3m)<Number(form.login_count_1m)) e.login_count_3m="Phải ≥ Login 1M";
-    if (form.txn_count_3m!==""&&form.txn_count_1m!==""&&Number(form.txn_count_3m)<Number(form.txn_count_1m)) e.txn_count_3m="Phải ≥ Txn 1M";
     return e;
   };
 
@@ -602,25 +583,12 @@ const CustomerForm = ({ onSubmit, animating }) => {
     { title:"Tài chính", fields:[
       ["Balance", inp("balance",{type:"number",placeholder:"e.g. 75000"})],
       ["Estimated Salary", inp("estimatedSalary",{type:"number",placeholder:"e.g. 60000"})],
-      ["Balance Change %", <>{inp("balance_change_pct",{type:"number",placeholder:"-1.0 ~ 1.0",step:"0.01"})}{errors.balance_change_pct&&<span className="cf-err">{errors.balance_change_pct}</span>}</>],
     ]},
     { title:"Tài khoản", fields:[
       ["Number of Products", <select className="cf-input cf-select" value={form.numOfProducts} onChange={e=>set("numOfProducts",Number(e.target.value))}>{[1,2,3,4].map(n=><option key={n}>{n}</option>)}</select>],
       ["Complaint Count", inp("complaint_count",{type:"number",placeholder:"0–10",min:0,max:10})],
       ["Has Credit Card", <label className="cf-check"><input type="checkbox" checked={form.hasCrCard} onChange={e=>set("hasCrCard",e.target.checked)}/><span>{form.hasCrCard?"Có":"Không"}</span></label>],
       ["Is Active Member", <label className="cf-check"><input type="checkbox" checked={form.isActiveMember} onChange={e=>set("isActiveMember",e.target.checked)}/><span>{form.isActiveMember?"Active":"Inactive"}</span></label>],
-    ]},
-    { title:"Đăng nhập & Hành vi", fields:[
-      ["Days Since Last Login", inp("days_since_last_login",{type:"number",placeholder:"e.g. 14"})],
-      ["Days Since Last Txn", inp("days_since_last_txn",{type:"number",placeholder:"e.g. 10"})],
-      ["Login Count (1M)", inp("login_count_1m",{type:"number",placeholder:"e.g. 6"})],
-      ["Login Count (3M)", <>{inp("login_count_3m",{type:"number",placeholder:"e.g. 20"})}{errors.login_count_3m&&<span className="cf-err">{errors.login_count_3m}</span>}</>],
-    ]},
-    { title:"Giao dịch", fields:[
-      ["Txn Count (1M)", inp("txn_count_1m",{type:"number",placeholder:"e.g. 4"})],
-      ["Txn Count (3M)", <>{inp("txn_count_3m",{type:"number",placeholder:"e.g. 14"})}{errors.txn_count_3m&&<span className="cf-err">{errors.txn_count_3m}</span>}</>],
-      ["Avg Txn Amount (3M)", inp("avg_txn_amount_3m",{type:"number",placeholder:"e.g. 350"})],
-      ["Txn Std Dev (3M)", inp("std_txn_amount_3m",{type:"number",placeholder:"e.g. 120"})],
     ]},
   ];
 
@@ -657,30 +625,16 @@ const InlineResult = ({ form, score, onBack }) => {
 
   const get = (k, fb) => (form[k] == null || form[k] === "") ? fb : Number(form[k]);
 
-  const lc1 = get("login_count_1m", 6), lc3 = get("login_count_3m", 20);
-  const tc1 = get("txn_count_1m", 4),  tc3 = get("txn_count_3m", 14);
-
   const barCompData = {
-    labels: ["Login/M", "Txn/M", "Recency (day)", "Complaints"],
+    labels: ["Credit Score", "Tenure (mth)", "Balance (k)", "Products"],
     datasets: [
       { label: "Khách hàng",
-        data: [ get("login_count_1m",6), get("txn_count_1m",4), Math.min(get("days_since_last_login",22),90), get("complaint_count",0) ],
+        data: [ get("creditScore",650), get("tenure_months",24), Math.round(get("balance",76486)/1000), get("numOfProducts",2) ],
         backgroundColor: "#852D49cc", borderColor: "#852D49", borderWidth: 2, borderRadius: 4 },
       { label: "Trung bình",
-        data: [6.5, 4.8, 22, 0.8],
+        data: [650, 24, 76, 2],
         backgroundColor: "#237098cc", borderColor: "#237098", borderWidth: 2, borderRadius: 4 },
     ],
-  };
-
-  const trendData = {
-    labels: ["Login M-3","Login M-2","Login M-1","Txn M-3","Txn M-2","Txn M-1"],
-    datasets: [{
-      label: "Activity",
-      data: [ Math.round((lc3-lc1)*0.45), Math.round((lc3-lc1)*0.55), lc1, Math.round((tc3-tc1)*0.45), Math.round((tc3-tc1)*0.55), tc1 ],
-      backgroundColor: ["#237098cc","#237098aa","#237098","#B8472Fcc","#B8472Faa","#B8472F"],
-      borderColor:     ["#237098","#237098","#237098","#B8472F","#B8472F","#B8472F"],
-      borderWidth: 2, borderRadius: 4,
-    }],
   };
 
   const chartOpts = (horizontal = false) => ({
@@ -727,24 +681,20 @@ const InlineResult = ({ form, score, onBack }) => {
         </div>
       </div>
 
-      {/* Charts 2x2 */}
+      {/* Charts */}
       <div className="result-charts-grid">
         <div className="result-chart-box">
           <h3 className="result-chart-title">Customer vs Segment Average</h3>
           <div style={{ height: 220 }}><Bar data={barCompData} options={chartOpts()} /></div>
         </div>
-        <div className="result-chart-box">
-          <h3 className="result-chart-title">Activity Trend (3 tháng)</h3>
-          <div style={{ height: 220 }}><Bar data={trendData} options={chartOpts()} /></div>
-        </div>
         <div className="result-chart-box" style={{ gridColumn: "1 / -1" }}>
           <h3 className="result-chart-title">Risk Breakdown</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "8px 0" }}>
             {[
-              { label: "Recency Risk",  val: Math.min(get("days_since_last_login",22) / 90 * 100, 100) },
-              { label: "Activity Drop", val: lc3 > 0 ? Math.max(0, (1 - lc1/(lc3/3)) * 100) : 0 },
-              { label: "Complaint Risk",val: Math.min(get("complaint_count",0) * 20, 100) },
-              { label: "Balance Risk",  val: get("balance_change_pct",0) < 0 ? Math.min(Math.abs(get("balance_change_pct",0)) * 100, 100) : 0 },
+              { label: "Credit Score Risk", val: Math.max(0, Math.min(100, ((750 - get("creditScore",650)) / 450) * 100)) },
+              { label: "Loyalty Risk",      val: Math.max(0, Math.min(100, ((48 - Math.min(get("tenure_months",24), 48)) / 48) * 100)) },
+              { label: "Balance Risk",      val: Math.max(0, Math.min(100, ((100000 - Math.min(get("balance",76486), 100000)) / 100000) * 100)) },
+              { label: "Complaint Risk",    val: Math.min(get("complaint_count",0) * 25, 100) },
             ].map((item, i) => {
               const pct = Math.round(item.val);
               const barColor = pct > 70 ? "#ef4444" : pct > 40 ? "#eab308" : "#22c55e";
@@ -816,24 +766,28 @@ export default function App() {
 
   const handleSearch = async (e) => {
     e.preventDefault();
-    if (!searchInput.trim()) { setError("Vui lòng nhập tên hoặc ID khách hàng."); return; }
-    setLoading(true); setError(null);
-    try {
-      const res = await fetch(`${API_URL}/predict`, {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ name: searchInput }),
-      });
-      if (res.ok) {
-        const result = await res.json();
-        setCustomerData({ ...defaultCustomerSample, name: searchInput, churnProbability: result.churn_probability||0.5 });
-        setViewCustomer(true);
-      }
-    } catch (err) {
-      setError("Search error: " + err.message);
-    } finally {
-      setLoading(false);
+    const query = searchInput.trim().toUpperCase();
+    if (!query) { setError("Vui lòng nhập ID khách hàng (ví dụ: KH001)."); return; }
+
+    const customer = CUSTOMER_DB[query];
+    if (!customer) {
+      setError(`Không tìm thấy "${query}". Thử: KH001 → KH010`);
+      return;
     }
+
+    setError(null);
+    setLoading(true);
+    setTimeout(() => {
+      const risk = computeRisk(customer);
+      setPredForm(customer);
+      setPredScore(risk);
+      setCustomerData({ ...defaultCustomerSample, name: customer.name });
+      setViewCustomer(true);
+      setLoading(false);
+      setTimeout(() => {
+        document.querySelector(".predict-section")?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
+    }, 800);
   };
 
   const handleNavClick = (section) => {
@@ -866,7 +820,7 @@ export default function App() {
           </ul>
         </div>
         <div className="search">
-          <input className="srch" type="search" placeholder="Search customers..."
+          <input className="srch" type="search" placeholder="Nhập ID (KH001...)"
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)}/>
           <button className="btn" onClick={() => setSearchInput(searchQuery)}>Search</button>
         </div>
@@ -940,11 +894,14 @@ export default function App() {
       {/* ===== SEARCH ===== */}
       <section className="search-analytics">
         <div className="search-container">
-          <h3>Customer Acquisition</h3>
+          <h3>Tra cứu khách hàng</h3>
+          <p style={{fontFamily:"Arial,sans-serif",fontSize:13,color:"#999",marginBottom:14}}>
+            Nhập ID khách hàng để xem dự đoán churn. Ví dụ: <strong style={{color:"#ff7200"}}>KH001</strong>, KH002 ... KH010
+          </p>
           <form onSubmit={handleSearch}>
-            <input type="text" placeholder="Enter customer ID or name..."
+            <input type="text" placeholder="Nhập Customer ID (VD: KH001)"
               value={searchInput} onChange={e=>setSearchInput(e.target.value)} disabled={loading}/>
-            <button type="submit" disabled={loading}>{loading?"Searching...":"Search"}</button>
+            <button type="submit" disabled={loading}>{loading?"Đang tìm...":"Tìm kiếm"}</button>
           </form>
         </div>
       </section>
