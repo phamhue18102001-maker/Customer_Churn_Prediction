@@ -18,19 +18,36 @@ ChartJS.register(
 const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const months = ["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"];
 
-// ─── CUSTOMER DATABASE (mock — thay bằng API thực tế) ────────────────────────
-const CUSTOMER_DB = {
-  "KH001": { id:"KH001",  age:35, gender:"Male",   creditScore:620, tenure_months:24, balance:75000,  estimatedSalary:60000,  numOfProducts:2, hasCrCard:1, isActiveMember:1, complaint_count:1 },
-  "KH002": { id:"KH002",  age:28, gender:"Female", creditScore:480, tenure_months:6,  balance:8500,   estimatedSalary:35000,  numOfProducts:1, hasCrCard:0, isActiveMember:0, complaint_count:3 },
-  "KH003": { id:"KH003",  age:52, gender:"Male",   creditScore:780, tenure_months:60, balance:150000, estimatedSalary:120000, numOfProducts:3, hasCrCard:1, isActiveMember:1, complaint_count:0 },
-  "KH004": { id:"KH004",  age:41, gender:"Female", creditScore:540, tenure_months:12, balance:22000,  estimatedSalary:48000,  numOfProducts:1, hasCrCard:1, isActiveMember:0, complaint_count:2 },
-  "KH005": { id:"KH005",  age:30, gender:"Male",   creditScore:710, tenure_months:36, balance:95000,  estimatedSalary:80000,  numOfProducts:2, hasCrCard:1, isActiveMember:1, complaint_count:0 },
-  "KH006": { id:"KH006",  age:45, gender:"Female", creditScore:420, tenure_months:4,  balance:5000,   estimatedSalary:28000,  numOfProducts:1, hasCrCard:0, isActiveMember:0, complaint_count:4 },
-  "KH007": { id:"KH007",  age:38, gender:"Male",   creditScore:660, tenure_months:18, balance:43000,  estimatedSalary:55000,  numOfProducts:2, hasCrCard:1, isActiveMember:1, complaint_count:1 },
-  "KH008": { id:"KH008",  age:55, gender:"Female", creditScore:820, tenure_months:72, balance:210000, estimatedSalary:150000, numOfProducts:4, hasCrCard:1, isActiveMember:1, complaint_count:0 },
-  "KH009": { id:"KH009",  age:25, gender:"Male",   creditScore:510, tenure_months:3,  balance:3200,   estimatedSalary:22000,  numOfProducts:1, hasCrCard:0, isActiveMember:0, complaint_count:2 },
-  "KH010": { id:"KH010",  age:48, gender:"Female", creditScore:695, tenure_months:42, balance:88000,  estimatedSalary:75000,  numOfProducts:3, hasCrCard:1, isActiveMember:1, complaint_count:0 },
-};
+// ─── CSV PARSER — đọc bank_churn_panel_v2.csv, index theo CustomerId ────────
+function parseCSV(text) {
+  const lines = text.trim().split("\n");
+  const headers = lines[0].split(",").map(h => h.trim().replace(/\r/g, ""));
+  const db = {};
+  for (let i = 1; i < lines.length; i++) {
+    const vals = lines[i].split(",").map(v => v.trim().replace(/\r/g, ""));
+    if (vals.length < 2) continue;
+    const row = {};
+    headers.forEach((h, idx) => { row[h] = vals[idx]; });
+    const id = row["CustomerId"];
+    if (!id) continue;
+    // Ghi đè nếu trùng ID → giữ snapshot mới nhất
+    db[id] = {
+      id,
+      age:             parseFloat(row["Age"])             || 35,
+      gender:          row["Gender_Male"] === "True" ? "Male" : "Female",
+      tenure_months:   parseFloat(row["tenure_months"])   || 24,
+      numOfProducts:   parseInt(row["NumOfProducts"])     || 2,
+      isActiveMember:  parseInt(row["IsActiveMember"])    || 0,
+      complaint_count: parseInt(row["complaint_count"])   || 0,
+      balance:         75000,
+      estimatedSalary: 60000,
+      creditScore:     650,
+      hasCrCard:       1,
+      actualChurn:     parseInt(row["will_churn"]),
+    };
+  }
+  return db;
+}
 
 // ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
 const defaultBankData = {
@@ -728,18 +745,29 @@ const InlineResult = ({ form, score, onBack }) => {
 
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [page,          setPage]          = useState("landing");
   const [predForm,      setPredForm]      = useState(null);
   const [predScore,     setPredScore]     = useState(0);
   const [loading,       setLoading]       = useState(false);
   const [exiting,       setExiting]       = useState(false);
-
   const [viewCustomer,  setViewCustomer]  = useState(false);
   const [bankData]                        = useState(defaultBankData);
   const [customerData,  setCustomerData]  = useState(defaultCustomerSample);
   const [error,         setError]         = useState(null);
   const [searchInput,   setSearchInput]   = useState("");
   const [searchQuery,   setSearchQuery]   = useState("");
+  const [customerDB,    setCustomerDB]    = useState({});
+  const [dbLoaded,      setDbLoaded]      = useState(false);
+
+  // Load CSV một lần khi app mount
+  useEffect(() => {
+    fetch("/bank_churn_panel_v2.csv")
+      .then(r => r.text())
+      .then(text => {
+        setCustomerDB(parseCSV(text));
+        setDbLoaded(true);
+      })
+      .catch(() => setDbLoaded(true)); // nếu không load được thì vẫn cho dùng form
+  }, []);
 
   const handleAnalyze = (payload) => {
     setExiting(true);
@@ -767,11 +795,11 @@ export default function App() {
   const handleSearch = async (e) => {
     e.preventDefault();
     const query = searchInput.trim().toUpperCase();
-    if (!query) { setError("Vui lòng nhập ID khách hàng (ví dụ: KH001)."); return; }
+    if (!query) { setError("Vui lòng nhập ID khách hàng (VD: CUST_00001)."); return; }
 
-    const customer = CUSTOMER_DB[query];
+    const customer = customerDB[query];
     if (!customer) {
-      setError(`Không tìm thấy "${query}". Thử: KH001 → KH010`);
+      setError(`Không tìm thấy "${query}". Kiểm tra lại ID (VD: CUST_00001).`);
       return;
     }
 
@@ -820,7 +848,7 @@ export default function App() {
           </ul>
         </div>
         <div className="search">
-          <input className="srch" type="search" placeholder="Nhập ID (KH001...)"
+          <input className="srch" type="search" placeholder="CUST_00001..."
             value={searchQuery} onChange={e => setSearchQuery(e.target.value)}/>
           <button className="btn" onClick={() => setSearchInput(searchQuery)}>Search</button>
         </div>
@@ -896,10 +924,11 @@ export default function App() {
         <div className="search-container">
           <h3>Tra cứu khách hàng</h3>
           <p style={{fontFamily:"Arial,sans-serif",fontSize:13,color:"#999",marginBottom:14}}>
-            Nhập ID khách hàng để xem dự đoán churn. Ví dụ: <strong style={{color:"#ff7200"}}>KH001</strong>, KH002 ... KH010
+            Nhập Customer ID để xem dự đoán churn. Ví dụ: <strong style={{color:"#ff7200"}}>CUST_00001</strong>
+            {!dbLoaded && <span style={{marginLeft:8,color:"#ff7200"}}>(Đang tải dữ liệu...)</span>}
           </p>
           <form onSubmit={handleSearch}>
-            <input type="text" placeholder="Nhập Customer ID (VD: KH001)"
+            <input type="text" placeholder="Nhập Customer ID (VD: CUST_00001)"
               value={searchInput} onChange={e=>setSearchInput(e.target.value)} disabled={loading}/>
             <button type="submit" disabled={loading}>{loading?"Đang tìm...":"Tìm kiếm"}</button>
           </form>
