@@ -27,21 +27,53 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# ========================== PANEL DATA LOADER ==========================
+import pandas as pd
+from pathlib import Path
 
+# PANEL_ALL: { CustomerId -> [ {snapshot_date, ...fields} ] } — tất cả 12 tháng
+# PANEL_LATEST: { CustomerId -> {snapshot mới nhất} } — dùng cho predict đơn
+PANEL_ALL: dict | None = None
+PANEL_LATEST: dict | None = None
+
+try:
+    data_path = Path(__file__).parent.parent / "data/bank_churn_panel_v2.csv"
+    df = pd.read_csv(data_path)
+    df["snapshot_date"] = pd.to_datetime(df["snapshot_date"])
+    df = df.sort_values(["CustomerId", "snapshot_date"])
+
+    # Build PANEL_ALL: group theo CustomerId, giữ list các snapshot theo thứ tự thời gian
+    PANEL_ALL = {}
+    for cid, group in df.groupby("CustomerId"):
+        PANEL_ALL[cid] = group.to_dict("records")
+
+    # Build PANEL_LATEST: lấy snapshot mới nhất của mỗi KH
+    df_latest = df.groupby("CustomerId").last().reset_index()
+    PANEL_LATEST = df_latest.set_index("CustomerId").to_dict("index")
+
+    print(f"✅ Loaded Panel: {len(PANEL_ALL):,} customers x 12 snapshots")
+except Exception as e:
+    print(f"⚠️ Không load được panel data: {e}")
+    PANEL_ALL = None
+    PANEL_LATEST = None
+# =======================================================================
 
 @app.get("/")
 def root():
     return {
-        "app"    : "Churn Prediction API v2",
-        "model"  : "XGBoost + Panel Feature Engineering",
+        "app": "Churn Prediction API v2",
+        "model": "XGBoost + Panel Feature Engineering",
         "endpoints": {
-            "health"    : "/health",
-            "predict"   : "POST /predict",
-            "history"   : "GET /applications",
+            "health": "/health",
+            "predict": "POST /predict",
+            "predict_by_customer_id": "GET /predict_by_customer_id/{customer_id}",
+            "customer_timeline": "GET /customer/{customer_id}  ← 12 tháng + prediction mỗi tháng",
+            "history": "GET /applications",
             "model_info": "/model-info",
-            "docs"      : "/docs"
+            "docs": "/docs"
         }
     }
+
 
 
 @app.head("/")
@@ -108,12 +140,169 @@ async def predict(application: PredictRequestSchema):
 
     return result
 
+@app.get("/predict_by_customer_id/{customer_id}")
+async def predict_by_customer_id(customer_id: str):
+    """Dự đoán churn cho snapshot MỚI NHẤT của khách hàng."""
+    if PANEL_LATEST is None:
+        raise HTTPException(status_code=503, detail="Panel data chưa load")
+
+    if customer_id not in PANEL_LATEST:
+        raise HTTPException(status_code=404, detail=f"Không tìm thấy CustomerId: {customer_id}")
+
+    row = PANEL_LATEST[customer_id]
+
+    input_dict = {
+    "days_since_last_txn": int(row.get("days_since_last_txn", 0)),
+    "days_since_last_login": int(row.get("days_since_last_login", row.get("days_since_last_txn", 0))),  # fallback
+    
+    "txn_count_3m": int(row.get("txn_count_3m", 0)),
+    "txn_count_1m": int(row.get("txn_count_1m", 0)),
+    "login_count_3m": int(row.get("login_count_3m", 0)),
+    "login_count_1m": int(row.get("login_count_1m", 0)),
+    
+    "avg_txn_amount_3m": float(row.get("avg_txn_amount_3m", 0)),
+    "std_txn_amount_3m": float(row.get("std_txn_amount_3m", 0)),
+    
+    "CreditScore": float(row.get("CreditScore", 0)),
+    "Gender": "Male" if row.get("Gender_Male", False) else "Female",
+    "Age": float(row.get("Age", 0)),
+    "tenure_months": float(row.get("tenure_months", 0)),
+    "Balance": float(row.get("Balance", 0)),
+    "NumOfProducts": int(row.get("NumOfProducts", 1)),
+    "HasCrCard": bool(row.get("HasCrCard", 1)),
+    "IsActiveMember": bool(row.get("IsActiveMember", 0)),
+    "EstimatedSalary": float(row.get("EstimatedSalary", row.get("spend_to_income", 0) * 10000)),
+    
+    "balance_change_pct": float(row.get("balance_change_pct", 0)),
+    "complaint_count": int(row.get("complaint_count", 0)),
+}
+
+    try:
+        result = churn_service.predict_churn(input_dict)
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
+    ChurnPredictionDB.save_prediction(
+        input_data=input_dict,
+        churn_score=result["churn_probability"],
+        will_churn=result["will_churn"],
+        risk_level=result["risk_level"],
+        recommendation=result["recommendation"]
+    )
+
+    snapshot_date = row.get("snapshot_date")
+    return {
+        **result,
+        "customer_id": customer_id,
+        "snapshot_date": str(snapshot_date) if snapshot_date else None,
+        "data_source": "panel_latest_csv",
+        "note": "Snapshot mới nhất từ bank_churn_panel_v2.csv"
+    }
+
+
+@app.get("/customer/{customer_id}")
+async def get_customer_timeline(customer_id: str):
+    """
+    Trả về toàn bộ 12 tháng của 1 khách hàng kèm churn prediction cho từng tháng.
+
+    Response:
+    - customer_id
+    - total_snapshots: số tháng có dữ liệu (thường = 12)
+    - actual_churn: nhãn thực tế (will_churn của snapshot cuối)
+    - timeline: list 12 phần tử, mỗi phần tử gồm:
+        - snapshot_date
+        - features: các feature của tháng đó
+        - prediction: churn_probability, will_churn, risk_level từ model
+    """
+    if PANEL_ALL is None:
+        raise HTTPException(status_code=503, detail="Panel data chưa load")
+
+    if customer_id not in PANEL_ALL:
+        raise HTTPException(status_code=404, detail=f"Không tìm thấy CustomerId: {customer_id}")
+
+    snapshots = PANEL_ALL[customer_id]
+    timeline = []
+
+    for row in snapshots:
+        # Map từ panel columns → input_dict cho model
+        input_dict = {
+            "days_since_last_txn": int(row.get("days_since_last_txn", 0)),
+            "days_since_last_login": int(row.get("days_since_last_login", row.get("days_since_last_txn", 0))),  # fallback
+    
+            "txn_count_3m": int(row.get("txn_count_3m", 0)),
+            "txn_count_1m": int(row.get("txn_count_1m", 0)),
+            "login_count_3m": int(row.get("login_count_3m", 0)),
+            "login_count_1m": int(row.get("login_count_1m", 0)),
+    
+            "avg_txn_amount_3m": float(row.get("avg_txn_amount_3m", 0)),
+            "std_txn_amount_3m": float(row.get("std_txn_amount_3m", 0)),
+    
+            "CreditScore": float(row.get("CreditScore", 0)),
+            "Gender": "Male" if row.get("Gender_Male", False) else "Female",
+            "Age": float(row.get("Age", 0)),
+            "tenure_months": float(row.get("tenure_months", 0)),
+            "Balance": float(row.get("Balance", 0)),
+            "NumOfProducts": int(row.get("NumOfProducts", 1)),
+            "HasCrCard": bool(row.get("HasCrCard", 1)),
+            "IsActiveMember": bool(row.get("IsActiveMember", 0)),
+            "EstimatedSalary": float(row.get("EstimatedSalary", row.get("spend_to_income", 0) * 10000)),
+    
+            "balance_change_pct": float(row.get("balance_change_pct", 0)),
+            "complaint_count": int(row.get("complaint_count", 0)),
+}
+
+        try:
+            pred = churn_service.predict_churn(input_dict)
+        except RuntimeError as e:
+            pred = {"error": str(e)}
+
+        snap_date = row.get("snapshot_date")
+        timeline.append({
+            "snapshot_date": str(snap_date)[:10] if snap_date else None,
+            "features": {
+                "days_since_last_txn": row.get("days_since_last_txn"),
+                "txn_count_3m":        row.get("txn_count_3m"),
+                "txn_trend_pct":       row.get("txn_trend_pct"),
+                "txn_drop_ratio":      row.get("txn_drop_ratio"),
+                "login_drop_ratio":    row.get("login_drop_ratio"),
+                "login_per_day_3m":    row.get("login_per_day_3m"),
+                "balance_change_pct":  row.get("balance_change_pct"),
+                "complaint_count":     row.get("complaint_count"),
+                "tenure_months":       row.get("tenure_months"),
+                "NumOfProducts":       row.get("NumOfProducts"),
+                "IsActiveMember":      row.get("IsActiveMember"),
+                "spend_to_income":     row.get("spend_to_income"),
+                "Age":                 row.get("Age"),
+                "data_set":            row.get("data_set"),
+            },
+            "prediction": {
+                "churn_probability": pred.get("churn_probability"),
+                "will_churn":        pred.get("will_churn"),
+                "risk_level":        pred.get("risk_level"),
+                "recommendation":    pred.get("recommendation"),
+                "warning_flags":     pred.get("warning_flags", []),
+            } if "error" not in pred else {"error": pred["error"]},
+            "actual_will_churn": int(row.get("will_churn", -1)),
+        })
+
+    last_row = snapshots[-1]
+    return {
+        "customer_id":     customer_id,
+        "total_snapshots": len(timeline),
+        "actual_churn":    int(last_row.get("will_churn", -1)),
+        "gender":          "Male" if last_row.get("Gender_Male", False) else "Female",
+        "age":             float(last_row.get("Age", 0)),
+        "timeline":        timeline,
+    }
 
 @app.get("/applications")
 def get_history(page: int = 1, limit: int = 10):
     """Lấy lịch sử dự đoán (phân trang)."""
     data = ChurnPredictionDB.get_history(page=page, limit=limit)
-    return {"data": data, "page": page, "limit": limit, "total_records": len(data)}
+    total = ChurnPredictionDB.count_total()
+    return {"data": data, "page": page, "limit": limit, "total_records": total,
+        "total_pages": (total + limit - 1) // limit if limit > 0 else 0,
+        "has_next": page * limit < total}
 
 
 @app.get("/applications/{id}")

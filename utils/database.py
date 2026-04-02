@@ -63,6 +63,20 @@ class ChurnPredictionDB:
             print(f"❌ Database Error (get_detail): {e}")
             return None
 
+    @staticmethod
+    def count_total() -> int:
+        """Đếm tổng số bản ghi trong bảng applications"""
+        try:
+        # Supabase hỗ trợ count=exact rất nhanh
+           result = supabase.table("applications") \
+            .select("id", count="exact") \
+            .limit(1) \
+            .execute()
+        
+           return result.count if hasattr(result, 'count') and result.count is not None else 0
+        except Exception as e:
+           print(f"⚠️ Không đếm được total_records: {e}")
+           return 0
 
     @staticmethod
     def get_history(page: int = 1, limit: int = 10) -> List[Dict]:
