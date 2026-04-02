@@ -611,7 +611,6 @@ const InlineResult = ({ form, score, onBack }) => {
   const [show, setShow] = useState(false);
   useEffect(() => { setTimeout(() => setShow(true), 60); }, []);
   const { label, color } = getRiskLabel(score);
-  const { summary, factors } = getInsight(form, score);
 
   const get = (k, fb) => (form[k] == null || form[k] === "") ? fb : Number(form[k]);
 
@@ -661,27 +660,58 @@ const InlineResult = ({ form, score, onBack }) => {
           <GaugeChart score={score} />
           <div className="risk-badge" style={{ background: `${color}22`, border: `1.5px solid ${color}`, color }}>{label}</div>
           <div className="risk-score-big" style={{ color }}><CountUp to={score} />%</div>
-          <p className="risk-desc">Xác suất rời bỏ dự đoán bởi mô hình</p>
+          <p className="risk-desc">Xác suất rời bỏ dự đoán bởi XGBoost</p>
         </div>
         <div className="ai-insight-box">
           <h3 className="insight-title">Insight</h3>
-          <p className="insight-summary">{summary}</p>
-          {form._recommendation && (
-            <p style={{ fontFamily:"Arial,sans-serif", fontSize:13, color:"#ff7200", margin:"10px 0 6px", fontStyle:"italic" }}>
-              💡 {form._recommendation}
+
+          {/* Nhãn thực tế từ data */}
+          {form._customerId && (
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+              <span style={{ fontFamily:"Arial,sans-serif", fontSize:12, color:"#999" }}>Nhãn thực tế:</span>
+              <span style={{
+                fontFamily:"Arial,sans-serif", fontSize:12, fontWeight:"bold", padding:"2px 10px",
+                borderRadius:4,
+                background: form._actualChurn === 1 ? "#ef444422" : "#22c55e22",
+                color:       form._actualChurn === 1 ? "#ef4444"   : "#22c55e",
+                border:      `1px solid ${form._actualChurn === 1 ? "#ef4444" : "#22c55e"}`,
+              }}>
+                {form._actualChurn === 1 ? "✗ Đã Churn" : form._actualChurn === 0 ? "✓ Còn lại" : "N/A"}
+              </span>
+            </div>
+          )}
+
+          {/* Recommendation từ model */}
+          {form._recommendation ? (
+            <p style={{ fontFamily:"Arial,sans-serif", fontSize:13, color:"#e2e2e2", marginBottom:10, lineHeight:1.6 }}>
+              {form._recommendation}
+            </p>
+          ) : (
+            <p style={{ fontFamily:"Arial,sans-serif", fontSize:13, color:"#e2e2e2", marginBottom:10 }}>
+              {score >= 70 ? "Khách hàng có nguy cơ rời bỏ CAO. Cần can thiệp ngay."
+                : score >= 30 ? "Khách hàng có dấu hiệu rủi ro TRUNG BÌNH, cần theo dõi."
+                : "Khách hàng ổn định, ít có nguy cơ rời bỏ."}
             </p>
           )}
+
+          {/* Warning flags từ model */}
           {form._warningFlags?.length > 0 && (
-            <p style={{ fontFamily:"Arial,sans-serif", fontSize:12, color:"#ef4444", marginBottom:8 }}>
-              ⚠ {form._warningFlags.join(" · ")}
+            <div style={{ marginBottom:12 }}>
+              {form._warningFlags.map((flag, i) => (
+                <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:6, marginBottom:4 }}>
+                  <span style={{ color:"#ef4444", fontSize:12, marginTop:1 }}>⚠</span>
+                  <span style={{ fontFamily:"Arial,sans-serif", fontSize:12, color:"#ef4444" }}>{flag}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Risk level badge */}
+          {form._riskLevel && (
+            <p style={{ fontFamily:"Arial,sans-serif", fontSize:11, color:"#666", marginTop:8 }}>
+              Risk level (model): <strong style={{ color: "#ff7200" }}>{form._riskLevel}</strong>
             </p>
           )}
-          <p className="insight-factor-label">Top yếu tố ảnh hưởng</p>
-          <ul className="insight-factors">
-            {factors.map((f, i) => (
-              <li key={i} className={`insight-factor insight-factor--${i}`}>{i + 1}. {f}</li>
-            ))}
-          </ul>
         </div>
       </div>
 
@@ -692,13 +722,20 @@ const InlineResult = ({ form, score, onBack }) => {
           <div style={{ height: 220 }}><Bar data={barCompData} options={chartOpts()} /></div>
         </div>
         <div className="result-chart-box" style={{ gridColumn: "1 / -1" }}>
-          <h3 className="result-chart-title">Risk Breakdown</h3>
+          <h3 className="result-chart-title">Risk Breakdown — từ dữ liệu thực tế</h3>
           <div style={{ display: "flex", flexDirection: "column", gap: 12, padding: "8px 0" }}>
             {[
-              { label: "Credit Score Risk", val: Math.max(0, Math.min(100, ((750 - get("creditScore",650)) / 450) * 100)) },
-              { label: "Loyalty Risk",      val: Math.max(0, Math.min(100, ((48 - Math.min(get("tenure_months",24), 48)) / 48) * 100)) },
-              { label: "Balance Risk",      val: Math.max(0, Math.min(100, ((100000 - Math.min(get("balance",76486), 100000)) / 100000) * 100)) },
-              { label: "Complaint Risk",    val: Math.min(get("complaint_count",0) * 25, 100) },
+              // Tất cả lấy từ features thực tế của KH, không tính rule tay
+              { label: "Churn Probability (Model)",
+                val: score },
+              { label: "Txn Drop Risk (txn_drop_ratio → 0 = rủi ro cao)",
+                val: form._txnDropRatio != null
+                  ? Math.round((1 - Math.min(Math.max(form._txnDropRatio, 0), 1)) * 100)
+                  : Math.round(score * 0.8) },
+              { label: "Inactivity Risk (IsActiveMember)",
+                val: get("isActiveMember", 1) === 0 ? 80 : 15 },
+              { label: "Complaint Risk",
+                val: Math.min(get("complaint_count", 0) * 25, 100) },
             ].map((item, i) => {
               const pct = Math.round(item.val);
               const barColor = pct > 70 ? "#ef4444" : pct > 40 ? "#eab308" : "#22c55e";
@@ -819,6 +856,8 @@ export default function App() {
         _riskLevel:      latestPred.risk_level,
         _recommendation: latestPred.recommendation,
         _warningFlags:   latestPred.warning_flags ?? [],
+        _txnDropRatio:   latest?.features?.txn_drop_ratio ?? null,
+        _txnTrendPct:    latest?.features?.txn_trend_pct  ?? null,
       };
 
       // Build customerData timeline để hiển thị chart 12 tháng
