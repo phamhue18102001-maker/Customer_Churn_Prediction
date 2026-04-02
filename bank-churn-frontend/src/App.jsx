@@ -772,6 +772,7 @@ export default function App() {
     if (e?.preventDefault) e.preventDefault();
     // Đọc từ cả 2 state (navbar dùng searchQuery, section dưới dùng searchInput)
     const query = (searchInput || searchQuery).trim().toUpperCase();
+    console.log("🔍 handleSearch fired | searchInput:", searchInput, "| searchQuery:", searchQuery, "| query:", query, "| URL:", `${API_URL}/customer/${query}`);
     if (!query) { setError("Vui lòng nhập ID khách hàng (VD: CUST_00001)."); return; }
 
     setError(null);
