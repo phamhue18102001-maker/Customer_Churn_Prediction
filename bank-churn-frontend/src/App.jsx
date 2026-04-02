@@ -18,6 +18,9 @@ ChartJS.register(
 const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const months = ["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"];
 
+// ─── API SEARCH — gọi backend /customer/{id} thay vì đọc CSV ─────────────────
+// CSV đã chuyển vào data/ (không phục vụ qua public), backend đã load sẵn panel data.
+// Dùng /customer/{id} để lấy 12 snapshot + prediction từ XGBoost model.
 
 // ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
 const defaultBankData = {
@@ -643,7 +646,11 @@ const InlineResult = ({ form, score, onBack }) => {
       <div className="ir-header">
         <div>
           <h2 className="ir-title">Kết quả Phân tích Rủi ro Churn</h2>
-          <p className="ir-subtitle">Panel Feature Engineering</p>
+          <p className="ir-subtitle">
+            {form._customerId
+              ? `Mã KH: ${form._customerId} · XGBoost Panel Model · Nhãn thực tế: ${form._actualChurn === 1 ? "✗ Churn" : form._actualChurn === 0 ? "✓ Còn lại" : "N/A"}`
+              : "Panel Feature Engineering"}
+          </p>
         </div>
         <button className="back-btn" onClick={onBack}>← Phân tích lại</button>
       </div>
@@ -659,6 +666,16 @@ const InlineResult = ({ form, score, onBack }) => {
         <div className="ai-insight-box">
           <h3 className="insight-title">Insight</h3>
           <p className="insight-summary">{summary}</p>
+          {form._recommendation && (
+            <p style={{ fontFamily:"Arial,sans-serif", fontSize:13, color:"#ff7200", margin:"10px 0 6px", fontStyle:"italic" }}>
+              💡 {form._recommendation}
+            </p>
+          )}
+          {form._warningFlags?.length > 0 && (
+            <p style={{ fontFamily:"Arial,sans-serif", fontSize:12, color:"#ef4444", marginBottom:8 }}>
+              ⚠ {form._warningFlags.join(" · ")}
+            </p>
+          )}
           <p className="insight-factor-label">Top yếu tố ảnh hưởng</p>
           <ul className="insight-factors">
             {factors.map((f, i) => (
@@ -725,19 +742,7 @@ export default function App() {
   const [error,         setError]         = useState(null);
   const [searchInput,   setSearchInput]   = useState("");
   const [searchQuery,   setSearchQuery]   = useState("");
-  const [customerDB,    setCustomerDB]    = useState({});
-  const [dbLoaded,      setDbLoaded]      = useState(false);
-
-  // Load CSV một lần khi app mount
-  useEffect(() => {
-    fetch("/bank_churn_panel_v2.csv")
-      .then(r => r.text())
-      .then(text => {
-        setCustomerDB(parseCSV(text));
-        setDbLoaded(true);
-      })
-      .catch(() => setDbLoaded(true)); // nếu không load được thì vẫn cho dùng form
-  }, []);
+  const [dbLoaded] = useState(true); // Không cần load CSV nữa, backend phục vụ trực tiếp
 
   const handleAnalyze = (payload) => {
     setExiting(true);
@@ -762,30 +767,90 @@ export default function App() {
     setPredScore(0);
   };
 
+  // ── Tìm KH qua API backend (panel data nằm trong data/, backend đã load sẵn) ──
   const handleSearch = async (e) => {
-    e.preventDefault();
-    const query = searchInput.trim().toUpperCase();
+    if (e?.preventDefault) e.preventDefault();
+    // Đọc từ cả 2 state (navbar dùng searchQuery, section dưới dùng searchInput)
+    const query = (searchInput || searchQuery).trim().toUpperCase();
     if (!query) { setError("Vui lòng nhập ID khách hàng (VD: CUST_00001)."); return; }
-
-    const customer = customerDB[query];
-    if (!customer) {
-      setError(`Không tìm thấy "${query}". Kiểm tra lại ID (VD: CUST_00001).`);
-      return;
-    }
 
     setError(null);
     setLoading(true);
-    setTimeout(() => {
-      const risk = computeRisk(customer);
-      setPredForm(customer);
-      setPredScore(risk);
-      setCustomerData({ ...defaultCustomerSample, name: customer.name });
+
+    try {
+      // Gọi /customer/{id} → 12 snapshot + prediction từng tháng từ XGBoost
+      const res = await fetch(`${API_URL}/customer/${query}`);
+
+      if (res.status === 404) {
+        setError(`Không tìm thấy "${query}". Kiểm tra lại ID (VD: CUST_00001).`);
+        setLoading(false);
+        return;
+      }
+      if (!res.ok) {
+        setError(`Lỗi server: ${res.status}. Thử lại sau.`);
+        setLoading(false);
+        return;
+      }
+
+      const apiData = await res.json();
+      // apiData: { customer_id, total_snapshots, actual_churn, gender, age, timeline: [...12] }
+
+      // Lấy snapshot mới nhất để hiển thị form + score
+      const latest = apiData.timeline?.[apiData.timeline.length - 1];
+      const latestPred = latest?.prediction ?? {};
+      const churnPct = Math.round((latestPred.churn_probability ?? 0) * 100);
+
+      // Map sang format predForm để InlineResult render được
+      const formData = {
+        age:             apiData.age            ?? 35,
+        gender:          apiData.gender         ?? "Male",
+        creditScore:     latest?.features?.CreditScore      ?? 650,
+        tenure_months:   latest?.features?.tenure_months    ?? 24,
+        balance:         apiData.timeline?.[apiData.timeline.length - 1]?.features?.Balance ?? 75000,
+        estimatedSalary: 60000,
+        numOfProducts:   latest?.features?.NumOfProducts    ?? 2,
+        isActiveMember:  latest?.features?.IsActiveMember   ?? 0,
+        hasCrCard:       1,
+        complaint_count: latest?.features?.complaint_count  ?? 0,
+        // Extra từ API để hiển thị thêm nếu cần
+        _customerId:     apiData.customer_id,
+        _actualChurn:    apiData.actual_churn,
+        _riskLevel:      latestPred.risk_level,
+        _recommendation: latestPred.recommendation,
+        _warningFlags:   latestPred.warning_flags ?? [],
+      };
+
+      // Build customerData timeline để hiển thị chart 12 tháng
+      const timeline = apiData.timeline ?? [];
+      const churnProbs = timeline.map(t => Math.round((t.prediction?.churn_probability ?? 0) * 100));
+      const txnCounts  = timeline.map(t => t.features?.txn_count_3m ?? 0);
+      const balances   = timeline.map(t => (t.features?.Balance ?? 75000) / 1e9); // đổi sang tỷ
+      const complaints = timeline.map(t => t.features?.complaint_count ?? 0);
+
+      setCustomerData({
+        name:         `${apiData.customer_id} (${apiData.gender}, ${Math.round(apiData.age)} tuổi)`,
+        customers:    1,
+        churn:        churnProbs,
+        deposit:      balances.map(b => parseFloat(b.toFixed(3))),
+        productUsage: timeline.map(t => (t.features?.NumOfProducts ?? 1) * 25),
+        appUsage:     timeline.map(t => t.features?.IsActiveMember ? "High" : "Low"),
+        complaints:   complaints,
+        transaction:  txnCounts,
+        churnProbability: (latestPred.churn_probability ?? 0),
+      });
+
+      setPredForm(formData);
+      setPredScore(churnPct);
       setViewCustomer(true);
       setLoading(false);
       setTimeout(() => {
         document.querySelector(".predict-section")?.scrollIntoView({ behavior: "smooth" });
       }, 100);
-    }, 800);
+
+    } catch (err) {
+      setError(`Không kết nối được backend (${API_URL}). Kiểm tra server đang chạy.`);
+      setLoading(false);
+    }
   };
 
   const handleNavClick = (section) => {
@@ -819,8 +884,11 @@ export default function App() {
         </div>
         <div className="search">
           <input className="srch" type="search" placeholder="CUST_00001..."
-            value={searchQuery} onChange={e => setSearchQuery(e.target.value)}/>
-          <button className="btn" onClick={() => setSearchInput(searchQuery)}>Search</button>
+            value={searchQuery}
+            onChange={e => { setSearchQuery(e.target.value); setSearchInput(e.target.value); }}
+            onKeyDown={e => { if (e.key === "Enter") handleSearch(e); }}
+          />
+          <button className="btn" onClick={handleSearch}>Search</button>
         </div>
       </nav>
 
