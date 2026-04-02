@@ -286,6 +286,43 @@ async def get_customer_timeline(customer_id: str):
         })
 
     last_row = snapshots[-1]
+
+    # Lưu snapshot mới nhất vào Supabase (chỉ save 1 lần per lượt tra cứu)
+    last_pred = timeline[-1]["prediction"] if timeline and "error" not in timeline[-1]["prediction"] else None
+    if last_pred:
+        last_input = {
+            "days_since_last_txn":   int(last_row.get("days_since_last_txn", 0)),
+            "days_since_last_login": int(last_row.get("days_since_last_login", last_row.get("days_since_last_txn", 0))),
+            "txn_count_3m":          int(last_row.get("txn_count_3m", 0)),
+            "txn_count_1m":          int(last_row.get("txn_count_1m", 0)),
+            "login_count_3m":        int(last_row.get("login_count_3m", 0)),
+            "login_count_1m":        int(last_row.get("login_count_1m", 0)),
+            "avg_txn_amount_3m":     float(last_row.get("avg_txn_amount_3m", 0)),
+            "std_txn_amount_3m":     float(last_row.get("std_txn_amount_3m", 0)),
+            "CreditScore":           float(last_row.get("CreditScore", 0)),
+            "Gender":                "Male" if last_row.get("Gender_Male", False) else "Female",
+            "Age":                   float(last_row.get("Age", 0)),
+            "tenure_months":         float(last_row.get("tenure_months", 0)),
+            "Balance":               float(last_row.get("Balance", 0)),
+            "NumOfProducts":         int(last_row.get("NumOfProducts", 1)),
+            "HasCrCard":             bool(last_row.get("HasCrCard", 1)),
+            "IsActiveMember":        bool(last_row.get("IsActiveMember", 0)),
+            "EstimatedSalary":       float(last_row.get("EstimatedSalary", 0)),
+            "balance_change_pct":    float(last_row.get("balance_change_pct", 0)),
+            "complaint_count":       int(last_row.get("complaint_count", 0)),
+            "customer_id":           customer_id,
+        }
+        try:
+            ChurnPredictionDB.save_prediction(
+                input_data    = last_input,
+                churn_score   = last_pred["churn_probability"],
+                will_churn    = last_pred["will_churn"],
+                risk_level    = last_pred["risk_level"],
+                recommendation= last_pred["recommendation"],
+            )
+        except Exception:
+            pass  # không để lỗi DB block response
+
     return {
         "customer_id":     customer_id,
         "total_snapshots": len(timeline),
