@@ -848,7 +848,8 @@ export default function App() {
       }, 100);
 
     } catch (err) {
-      setError(`Không kết nối được backend (${API_URL}). Kiểm tra server đang chạy.`);
+      console.error("handleSearch error:", err);
+      setError(`Lỗi: ${err.message}`);
       setLoading(false);
     }
   };
