@@ -18,36 +18,6 @@ ChartJS.register(
 const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
 const months = ["T1","T2","T3","T4","T5","T6","T7","T8","T9","T10","T11","T12"];
 
-// ─── CSV PARSER — đọc bank_churn_panel_v2.csv, index theo CustomerId ────────
-function parseCSV(text) {
-  const lines = text.trim().split("\n");
-  const headers = lines[0].split(",").map(h => h.trim().replace(/\r/g, ""));
-  const db = {};
-  for (let i = 1; i < lines.length; i++) {
-    const vals = lines[i].split(",").map(v => v.trim().replace(/\r/g, ""));
-    if (vals.length < 2) continue;
-    const row = {};
-    headers.forEach((h, idx) => { row[h] = vals[idx]; });
-    const id = row["CustomerId"];
-    if (!id) continue;
-    // Ghi đè nếu trùng ID → giữ snapshot mới nhất
-    db[id] = {
-      id,
-      age:             parseFloat(row["Age"])             || 35,
-      gender:          row["Gender_Male"] === "True" ? "Male" : "Female",
-      tenure_months:   parseFloat(row["tenure_months"])   || 24,
-      numOfProducts:   parseInt(row["NumOfProducts"])     || 2,
-      isActiveMember:  parseInt(row["IsActiveMember"])    || 0,
-      complaint_count: parseInt(row["complaint_count"])   || 0,
-      balance:         75000,
-      estimatedSalary: 60000,
-      creditScore:     650,
-      hasCrCard:       1,
-      actualChurn:     parseInt(row["will_churn"]),
-    };
-  }
-  return db;
-}
 
 // ─── DEFAULT DATA ─────────────────────────────────────────────────────────────
 const defaultBankData = {
