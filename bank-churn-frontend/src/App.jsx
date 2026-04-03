@@ -45,9 +45,10 @@ const defaultCustomerSample = {
   churnProbability: 0.65,
 };
 
-const chartExplanations = {
+// ─── BANK-LEVEL EXPLANATIONS ──────────────────────────────────────────────────
+const bankChartExplanations = {
   churn: {
-    title: "Churn Rate Trend",
+    title: "Xu hướng tỷ lệ churn",
     explanation: "Tỷ lệ churn theo tháng cho thấy xu hướng tăng. Dữ liệu này giúp xác định mùa cao điểm mất khách hàng.",
     keyPoints: [
       "Churn tăng từ 8.2% → 11.3% trong năm",
@@ -61,7 +62,7 @@ const chartExplanations = {
     ],
   },
   deposit: {
-    title: "Deposit Growth",
+    title: "Tăng trưởng tiền gửi",
     explanation: "Tổng tiền gửi tăng từ 245 tỷ → 278 tỷ nhưng điều này bị che phủ bởi churn tăng cao.",
     keyPoints: [
       "Tăng 33 tỷ trong năm (+13.5%)",
@@ -75,7 +76,7 @@ const chartExplanations = {
     ],
   },
   products: {
-    title: "Product Usage Rate",
+    title: "Tỷ lệ sử dụng sản phẩm",
     explanation: "Tỷ lệ sử dụng sản phẩm tăng từ 65% → 76%, chỉ ra tiềm năng cross-sell và up-sell.",
     keyPoints: [
       "Người dùng ngày càng sử dụng nhiều sản phẩm",
@@ -84,53 +85,167 @@ const chartExplanations = {
     ],
     solutions: [
       "Promosi kết hợp sản phẩm (bundle)",
-      "Personalized product recommendations",
-      "Loyalty rewards cho multi-product users",
+      "Đề xuất sản phẩm được cá nhân hóa",
+      "Chương trình khách hàng thân thiết dành cho người dùng nhiều sản phẩm",
     ],
   },
   complaints: {
-    title: "Customer Complaints",
+    title: "Khiếu nại khách hàng",
     explanation: "Khiếu nại giảm từ 12 → 6 (50%), cho thấy cải thiện chất lượng dịch vụ.",
     keyPoints: [
       "Xu hướng giảm liên tục (đặc biệt Q3-Q4)",
-      "Fewer complaints = higher retention potential",
-      "Service quality improvement visible",
+      "Ít khiếu nại hơn = Khả năng giữ chân khách hàng cao hơn",
+      "Cải thiện chất lượng dịch vụ có thể nhìn thấy rõ ràng qua dữ liệu khiếu nại",
     ],
     solutions: [
       "Tiếp tục invest vào customer service",
-      "Implement feedback loop từ complaints",
-      "Preventive measures trước khi phát sinh issue",
+      "Thực hiện vòng phản hồi từ khiếu nại",
+      "Biện pháp phòng ngừa trước khi phát sinh",
     ],
   },
   appUsage: {
-    title: "Mobile App Usage Intensity",
-    explanation: "Mức độ sử dụng app tăng từ Low → Very High, chỉ ra digital engagement tốt.",
+    title: "Mức độ sử dụng app",
+    explanation: "Mức độ sử dụng app của toàn bộ khách hàng theo tháng, từ Low đến Very High.",
     keyPoints: [
-      "Q2 onwards: Medium → High → Very High",
-      "Digital channel adoption tốt",
-      "App can be used for retention campaigns",
+      "App engagement tăng mạnh từ Q2 trở đi",
+      "Tỷ lệ Very High users tăng trong Q4",
+      "Engagement cao tương quan với churn thấp hơn",
     ],
     solutions: [
-      "Push notification strategy cho retention",
-      "In-app offers & personalized messaging",
-      "Gamification để tăng engagement",
+      "Push notification chiến lược để tăng retention",
+      "Gamification để duy trì sự tương tác",
+      "Phân tích nhóm Low usage để can thiệp sớm",
     ],
   },
   transaction: {
-    title: "Monthly Transactions",
-    explanation: "Số giao d��ch tăng 39.5% (4200 → 5850), chỉ ra khách hàng ngày càng active.",
+    title: "Giao dịch hàng tháng",
+    explanation: "Số giao dịch tăng 39.5% (4200 → 5850), chỉ ra khách hàng ngày càng active.",
     keyPoints: [
       "Tăng ổn định +165 giao dịch/tháng",
       "+41% YoY là tín hiệu mạnh",
-      "High transaction volume ≠ low churn (paradox)",
+      "Khối lượng giao dịch cao không đồng nghĩa với tỷ lệ khách hàng rời bỏ thấp",
     ],
     solutions: [
-      "Analyze churn among high-transaction users",
-      "Identify churn drivers separately by segment",
-      "Rewards program cho frequent transactors",
+      "Phân tích tỷ lệ khách hàng rời bỏ dịch vụ trong số người dùng có số lượng giao dịch cao.",
+      "Xác định các yếu tố gây ra tình trạng khách hàng rời bỏ một cách riêng biệt theo từng phân khúc",
+      "Chương trình thưởng dành cho khách hàng thường xuyên giao dịch",
     ],
   },
 };
+
+// ─── CUSTOMER-LEVEL EXPLANATIONS (dynamic, nhận customerData để tính insight) ──
+function getCustomerChartExplanations(customerData) {
+  const txn = customerData.transaction ?? [];
+  const txnFirst = txn[0] ?? 0;
+  const txnLast  = txn[txn.length - 1] ?? 0;
+  const txnChange = txnFirst > 0 ? (((txnLast - txnFirst) / txnFirst) * 100).toFixed(0) : 0;
+  const txnTrend = txnLast >= txnFirst ? "tăng" : "giảm";
+
+  const churn = customerData.churn ?? [];
+  const churnFirst = churn[0] ?? 0;
+  const churnLast  = churn[churn.length - 1] ?? 0;
+  const churnTrend = churnLast >= churnFirst ? "tăng" : "cải thiện";
+
+  const dep = customerData.deposit ?? [];
+  const depFirst = dep[0] ?? 0;
+  const depLast  = dep[dep.length - 1] ?? 0;
+  const depTrend = depLast >= depFirst ? "tăng" : "giảm";
+
+  const comp = customerData.complaints ?? [];
+  const compTotal = comp.reduce((a, b) => a + b, 0);
+  const compLast3 = comp.slice(-3).reduce((a, b) => a + b, 0);
+
+  const login = customerData.appUsage ?? [];
+  const loginFirst = login[0] ?? "Low";
+  const loginLast  = login[login.length - 1] ?? "Low";
+
+  return {
+    churn: {
+      title: "Xác suất Churn theo Tháng",
+      explanation: `Xác suất rời bỏ của khách hàng này ${churnTrend} qua các tháng. Mức hiện tại là ${churnLast}% — ${churnLast >= 70 ? "cần can thiệp ngay" : churnLast >= 40 ? "cần theo dõi sát" : "đang ổn định"}.`,
+      keyPoints: [
+        `Churn probability: ${churnFirst}% → ${churnLast}% (${churnTrend})`,
+        churnLast >= 70 ? "⚠ Nguy cơ CAO — cần can thiệp ngay" : churnLast >= 40 ? "⚡ Nguy cơ TRUNG BÌNH — theo dõi sát" : "✓ Nguy cơ thấp — ổn định",
+        "Dựa trên mô hình XGBoost từ panel data thực tế",
+      ],
+      solutions: [
+        churnLast >= 70 ? "Liên hệ KH ngay qua phone / gặp trực tiếp" : "Theo dõi thêm 1-2 tháng tới",
+        "Offer ưu đãi cá nhân hoá dựa trên lịch sử",
+        "Giao cho relationship manager phụ trách",
+      ],
+    },
+    deposit: {
+      title: "Biến Động Số Dư Tài Khoản",
+      explanation: `Số dư tài khoản ${depTrend} từ ${depFirst.toFixed(3)} tỷ → ${depLast.toFixed(3)} tỷ. Xu hướng này phản ánh mức độ gắn kết tài chính của KH với ngân hàng.`,
+      keyPoints: [
+        `Số dư: ${depFirst.toFixed(3)} → ${depLast.toFixed(3)} tỷ VND`,
+        depLast < depFirst ? "⚠ Số dư giảm — dấu hiệu rút vốn dần" : "✓ Số dư ổn định hoặc tăng",
+        "Số dư thấp tương quan mạnh với nguy cơ churn cao",
+      ],
+      solutions: [
+        depLast < depFirst ? "Tư vấn sản phẩm tiết kiệm / đầu tư phù hợp" : "Duy trì ưu đãi lãi suất cạnh tranh",
+        "Nhắc nhở và khuyến khích duy trì số dư tối thiểu",
+        "Tặng thưởng cho KH giữ số dư cao liên tục",
+      ],
+    },
+    products: {
+      title: "Mức Độ Sử Dụng Sản Phẩm",
+      explanation: "Số lượng sản phẩm mà khách hàng đang sử dụng qua từng tháng. KH sử dụng nhiều sản phẩm gắn kết hơn và ít rời bỏ hơn.",
+      keyPoints: [
+        `Sản phẩm: ${customerData.productUsage?.[0] ?? 0}% → ${customerData.productUsage?.[customerData.productUsage?.length-1] ?? 0}%`,
+        customerData.productUsage?.[customerData.productUsage?.length-1] <= 25 ? "⚠ Chỉ dùng 1 sản phẩm — rủi ro cao" : "✓ Đa sản phẩm — gắn kết tốt hơn",
+        "Cross-sell thành công giúp giảm churn đáng kể",
+      ],
+      solutions: [
+        "Đề xuất gói sản phẩm phù hợp nhu cầu KH",
+        "Ưu đãi bundle khi dùng thêm sản phẩm mới",
+        "Tư vấn sản phẩm theo độ tuổi và thu nhập",
+      ],
+    },
+    appUsage: {
+      title: "Mức Độ Login / Hoạt Động App",
+      explanation: `Tần suất đăng nhập và sử dụng app từ ${loginFirst} → ${loginLast}. Đây là chỉ báo quan trọng về mức độ engaged của KH với ngân hàng.`,
+      keyPoints: [
+        `Login frequency: ${loginFirst} → ${loginLast}`,
+        loginLast === "Low" || loginLast === "Very Low" ? "⚠ Ít hoạt động — nguy cơ silent churn" : "✓ KH còn đang tương tác với app",
+        "KH không login liên tục 2+ tháng thường churn sớm",
+      ],
+      solutions: [
+        loginLast === "Low" ? "Gửi re-engagement campaign qua email/SMS" : "Duy trì trải nghiệm app tốt",
+        "Push notification cá nhân hoá để kéo KH quay lại",
+        "Tặng điểm thưởng cho mỗi lần đăng nhập hàng tuần",
+      ],
+    },
+    complaints: {
+      title: "Lịch Sử Khiếu Nại của Khách Hàng",
+      explanation: `Tổng ${compTotal} lần khiếu nại trong năm, ${compLast3} lần trong 3 tháng gần nhất. Khiếu nại là yếu tố churn mạnh nhất trong mô hình XGBoost.`,
+      keyPoints: [
+        `Tổng khiếu nại: ${compTotal} lần / năm`,
+        compLast3 >= 3 ? "⚠ Tập trung nhiều trong 3 tháng gần đây — nguy hiểm" : compTotal === 0 ? "✓ Không có khiếu nại — tín hiệu tốt" : "Phân bổ khiếu nại tương đối đều",
+        "Mỗi lần khiếu nại tăng +25% điểm churn trong model",
+      ],
+      solutions: [
+        compTotal > 0 ? "Follow-up trực tiếp để giải quyết tồn đọng" : "Duy trì chất lượng dịch vụ hiện tại",
+        "Ghi nhận nguyên nhân khiếu nại để cải thiện systemic",
+        "Gửi lời xin lỗi & ưu đãi bù đắp nếu có khiếu nại gần đây",
+      ],
+    },
+    transaction: {
+      title: "Thay Đổi Giao Dịch theo Tháng",
+      explanation: `Số giao dịch của KH này ${txnTrend} ${Math.abs(txnChange)}% (${txnFirst} → ${txnLast} giao dịch). Sụt giảm đột ngột thường báo trước churn trong 1-2 tháng tới.`,
+      keyPoints: [
+        `Giao dịch: ${txnFirst} → ${txnLast} (${txnChange > 0 ? "+" : ""}${txnChange}%)`,
+        txnLast < txnFirst ? "⚠ Giao dịch giảm — dấu hiệu rút lui dần" : "✓ Giao dịch ổn định hoặc tăng",
+        "Giảm >30% so với peak là risk signal mạnh nhất",
+      ],
+      solutions: [
+        txnLast < txnFirst ? "Kiểm tra lý do giảm giao dịch, liên hệ KH ngay" : "Khuyến khích duy trì giao dịch qua cashback",
+        "Phân tích loại giao dịch để tư vấn sản phẩm phù hợp",
+        "Reward program cho KH giao dịch thường xuyên",
+      ],
+    },
+  };
+}
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
 function analyzeData(data) {
@@ -232,8 +347,8 @@ function getInsight(form, score) {
   return { summary, factors: factors.slice(0, 3) };
 }
 
-// ─── CHART SECTION (từ App.jsx gốc, giữ nguyên) ──────────────────────────────
-const ChartSection = ({ chartKey, data, color, type = "line" }) => {
+// ─── CHART SECTION ────────────────────────────────────────────────────────────
+const ChartSection = ({ chartKey, data, color, type = "line", viewCustomer = false, customerData = null }) => {
   const ref = useRef();
   const [isVisible, setIsVisible] = useState(false);
 
@@ -246,7 +361,10 @@ const ChartSection = ({ chartKey, data, color, type = "line" }) => {
     return () => observer.disconnect();
   }, []);
 
-  const info = chartExplanations[chartKey];
+  const explanations = viewCustomer && customerData
+    ? getCustomerChartExplanations(customerData)
+    : bankChartExplanations;
+  const info = explanations[chartKey] ?? bankChartExplanations[chartKey];
 
   const chartData = {
     labels: months,
@@ -660,7 +778,7 @@ const InlineResult = ({ form, score, onBack }) => {
           <GaugeChart score={score} />
           <div className="risk-badge" style={{ background: `${color}22`, border: `1.5px solid ${color}`, color }}>{label}</div>
           <div className="risk-score-big" style={{ color }}><CountUp to={score} />%</div>
-          <p className="risk-desc">Xác suất rời bỏ dự đoán bởi XGBoost</p>
+          <p className="risk-desc">Xác suất rời bỏ dự đoán</p>
         </div>
         <div className="ai-insight-box">
           <h3 className="insight-title">Insight</h3>
@@ -1026,12 +1144,12 @@ export default function App() {
       </section>
 
       {/* ===== CHARTS ===== */}
-      <ChartSection chartKey="churn"       data={data.churn}        color="#852D49" type="line"/>
-      <ChartSection chartKey="deposit"     data={data.deposit}      color="#B8472F" type="line"/>
-      <ChartSection chartKey="products"    data={data.productUsage} color="#237098" type="line"/>
-      <ChartSection chartKey="complaints"  data={data.complaints}   color="#852D49" type="bar"/>
-      <ChartSection chartKey="appUsage"    data={data.appUsage}     color="#B8472F" type="line"/>
-      <ChartSection chartKey="transaction" data={data.transaction}  color="#237098" type="line"/>
+      <ChartSection chartKey="churn"       data={data.churn}        color="#852D49" type="line"  viewCustomer={viewCustomer} customerData={customerData}/>
+      <ChartSection chartKey="deposit"     data={data.deposit}      color="#B8472F" type="line"  viewCustomer={viewCustomer} customerData={customerData}/>
+      <ChartSection chartKey="products"    data={data.productUsage} color="#237098" type="line"  viewCustomer={viewCustomer} customerData={customerData}/>
+      <ChartSection chartKey="complaints"  data={data.complaints}   color="#852D49" type="bar"   viewCustomer={viewCustomer} customerData={customerData}/>
+      <ChartSection chartKey="appUsage"    data={data.appUsage}     color="#B8472F" type="line"  viewCustomer={viewCustomer} customerData={customerData}/>
+      <ChartSection chartKey="transaction" data={data.transaction}  color="#237098" type="line"  viewCustomer={viewCustomer} customerData={customerData}/>
 
       {/* ===== SUMMARY ===== */}
       <section className="summary-section">
