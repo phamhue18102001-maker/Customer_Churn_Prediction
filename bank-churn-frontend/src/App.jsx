@@ -103,7 +103,20 @@ const bankChartExplanations = {
       "Biện pháp phòng ngừa trước khi phát sinh",
     ],
   },
- 
+  appUsage: {
+    title: "Tần suất dử dụng app",
+    explanation: "Mức độ sử dụng app của toàn bộ khách hàng theo tháng, từ Low đến Very High.",
+    keyPoints: [
+      "App engagement tăng mạnh từ Q2 trở đi",
+      "Tỷ lệ Very High users tăng trong Q4",
+      "Engagement cao tương quan với churn thấp hơn",
+    ],
+    solutions: [
+      "Push notification chiến lược để tăng retention",
+      "Gamification để giữ engagement",
+      "Phân tích nhóm Low usage để can thiệp sớm",
+    ],
+  },
   transaction: {
     title: "Giao dịch hàng tháng",
     explanation: "Số giao dịch tăng 39.5% (4200 → 5850), chỉ ra khách hàng ngày càng active.",
