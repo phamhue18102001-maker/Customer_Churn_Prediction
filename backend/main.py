@@ -321,7 +321,7 @@ async def get_customer_timeline(customer_id: str):
                 recommendation= last_pred["recommendation"],
             )
         except Exception:
-            pass  # không để lỗi DB block response
+            pass  
 
     return {
         "customer_id":     customer_id,
